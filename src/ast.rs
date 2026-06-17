@@ -13,8 +13,15 @@ pub enum Item {
 pub enum Stmt {
     VarDecl(VarDecl),
     MacroCall(MacroCall),
+    FunctionCall(FunctionCall),
     Assignment(Assignment),
     If(IfStmt),
+    While(WhileStmt),
+    For(ForStmt),
+    ForEach(ForEachStmt),
+    Break,
+    Continue,
+    Return(ReturnStmt),
 }
 
 #[derive(Debug)]
@@ -34,11 +41,25 @@ pub struct Assignment {
 pub struct Function {
     pub public: bool,
     pub name: String,
+    pub params: Vec<Param>,
+    pub return_type: Option<String>,
     pub body: Vec<Stmt>,
 }
 
 #[derive(Debug)]
+pub struct Param {
+    pub ty: String,
+    pub name: String,
+}
+
+#[derive(Debug)]
 pub struct MacroCall {
+    pub name: String,
+    pub args: Vec<Expr>,
+}
+
+#[derive(Debug)]
+pub struct FunctionCall {
     pub name: String,
     pub args: Vec<Expr>,
 }
@@ -51,11 +72,52 @@ pub struct IfStmt {
 }
 
 #[derive(Debug)]
+pub struct WhileStmt {
+    pub condition: Expr,
+    pub body: Vec<Stmt>,
+}
+
+#[derive(Debug)]
+pub struct ForStmt {
+    pub initializer: VarDecl,
+    pub condition: Expr,
+    pub update: Assignment,
+    pub body: Vec<Stmt>,
+}
+
+#[derive(Debug)]
+pub struct ForEachStmt {
+    pub item_ty: String,
+    pub item_name: String,
+    pub iterable: Expr,
+    pub body: Vec<Stmt>,
+}
+
+#[derive(Debug)]
+pub struct ReturnStmt {
+    pub value: Expr,
+}
+
+#[derive(Debug)]
 pub enum Expr {
     Int(i64),
     Str(String),
     Bool(bool),
     Ident(String),
+
+    ArrayLiteral(Vec<Expr>),
+
+    DictLiteral(Vec<(String, Expr)>),
+
+    Index {
+        target: Box<Expr>,
+        index: Box<Expr>,
+    },
+
+    Call {
+        name: String,
+        args: Vec<Expr>,
+    },
 
     Binary {
         left: Box<Expr>,

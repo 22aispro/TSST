@@ -1,8 +1,10 @@
-use crate::token::Token;
+use crate::token::{Token, TokenKind};
 
 pub struct Lexer {
     input: Vec<char>,
     pos: usize,
+    line: usize,
+    column: usize,
 }
 
 impl Lexer {
@@ -10,6 +12,8 @@ impl Lexer {
         Self {
             input: source.chars().collect(),
             pos: 0,
+            line: 1,
+            column: 1,
         }
     }
 
@@ -18,7 +22,7 @@ impl Lexer {
 
         loop {
             let token = self.next_token()?;
-            let is_eof = token == Token::Eof;
+            let is_eof = token.kind == TokenKind::Eof;
 
             tokens.push(token);
 
@@ -33,9 +37,12 @@ impl Lexer {
     fn next_token(&mut self) -> Result<Token, String> {
         self.skip_whitespace_and_comments();
 
+        let line = self.line;
+        let column = self.column;
+
         let ch = match self.current() {
             Some(ch) => ch,
-            None => return Ok(Token::Eof),
+            None => return Ok(Token::new(TokenKind::Eof, line, column)),
         };
 
         match ch {
@@ -44,9 +51,9 @@ impl Lexer {
 
                 if self.current() == Some('=') {
                     self.advance();
-                    Ok(Token::EqEq)
+                    Ok(Token::new(TokenKind::EqEq, line, column))
                 } else {
-                    Ok(Token::Eq)
+                    Ok(Token::new(TokenKind::Eq, line, column))
                 }
             }
 
@@ -55,9 +62,9 @@ impl Lexer {
 
                 if self.current() == Some('=') {
                     self.advance();
-                    Ok(Token::BangEq)
+                    Ok(Token::new(TokenKind::BangEq, line, column))
                 } else {
-                    Ok(Token::Bang)
+                    Ok(Token::new(TokenKind::Bang, line, column))
                 }
             }
 
@@ -66,9 +73,9 @@ impl Lexer {
 
                 if self.current() == Some('=') {
                     self.advance();
-                    Ok(Token::LessEq)
+                    Ok(Token::new(TokenKind::LessEq, line, column))
                 } else {
-                    Ok(Token::Less)
+                    Ok(Token::new(TokenKind::Less, line, column))
                 }
             }
 
@@ -77,73 +84,97 @@ impl Lexer {
 
                 if self.current() == Some('=') {
                     self.advance();
-                    Ok(Token::GreaterEq)
+                    Ok(Token::new(TokenKind::GreaterEq, line, column))
                 } else {
-                    Ok(Token::Greater)
+                    Ok(Token::new(TokenKind::Greater, line, column))
+                }
+            }
+
+            '-' => {
+                self.advance();
+
+                if self.current() == Some('>') {
+                    self.advance();
+                    Ok(Token::new(TokenKind::Arrow, line, column))
+                } else {
+                    Ok(Token::new(TokenKind::Minus, line, column))
                 }
             }
 
             ';' => {
                 self.advance();
-                Ok(Token::Semi)
+                Ok(Token::new(TokenKind::Semi, line, column))
             }
 
             ',' => {
                 self.advance();
-                Ok(Token::Comma)
+                Ok(Token::new(TokenKind::Comma, line, column))
+            }
+
+            ':' => {
+                self.advance();
+                Ok(Token::new(TokenKind::Colon, line, column))
             }
 
             '+' => {
                 self.advance();
-                Ok(Token::Plus)
-            }
-
-            '-' => {
-                self.advance();
-                Ok(Token::Minus)
+                Ok(Token::new(TokenKind::Plus, line, column))
             }
 
             '*' => {
                 self.advance();
-                Ok(Token::Star)
+                Ok(Token::new(TokenKind::Star, line, column))
             }
 
             '/' => {
                 self.advance();
-                Ok(Token::Slash)
+                Ok(Token::new(TokenKind::Slash, line, column))
             }
 
             '(' => {
                 self.advance();
-                Ok(Token::LParen)
+                Ok(Token::new(TokenKind::LParen, line, column))
             }
 
             ')' => {
                 self.advance();
-                Ok(Token::RParen)
+                Ok(Token::new(TokenKind::RParen, line, column))
             }
 
             '{' => {
                 self.advance();
-                Ok(Token::LBrace)
+                Ok(Token::new(TokenKind::LBrace, line, column))
             }
 
             '}' => {
                 self.advance();
-                Ok(Token::RBrace)
+                Ok(Token::new(TokenKind::RBrace, line, column))
             }
 
-            '"' => self.read_string(),
+            '[' => {
+                self.advance();
+                Ok(Token::new(TokenKind::LBracket, line, column))
+            }
 
-            ch if ch.is_ascii_digit() => self.read_number(),
+            ']' => {
+                self.advance();
+                Ok(Token::new(TokenKind::RBracket, line, column))
+            }
 
-            ch if is_ident_start(ch) => Ok(self.read_identifier_or_keyword()),
+            '"' => self.read_string(line, column),
 
-            _ => Err(format!("Unexpected character: '{}'", ch)),
+            ch if ch.is_ascii_digit() => self.read_number(line, column),
+
+            ch if is_ident_start(ch) => Ok(self.read_identifier_or_keyword(line, column)),
+
+            _ => Err(format!(
+                "line {}, column {}: Unexpected character '{}'",
+                line, column, ch
+            )),
         }
     }
 
-    fn read_identifier_or_keyword(&mut self) -> Token {
+    fn read_identifier_or_keyword(&mut self, line: usize, column: usize) -> Token {
         let start = self.pos;
 
         while let Some(ch) = self.current() {
@@ -156,24 +187,32 @@ impl Lexer {
 
         let text: String = self.input[start..self.pos].iter().collect();
 
-        match text.as_str() {
-            "pub" => Token::Pub,
-            "fcn" => Token::Fcn,
-            "if" => Token::If,
-            "else" => Token::Else,
-            "true" => Token::Bool(true),
-            "false" => Token::Bool(false),
+        let kind = match text.as_str() {
+            "pub" => TokenKind::Pub,
+            "fcn" => TokenKind::Fcn,
+            "if" => TokenKind::If,
+            "else" => TokenKind::Else,
+            "while" => TokenKind::While,
+            "for" => TokenKind::For,
+            "in" => TokenKind::In,
+            "break" => TokenKind::Break,
+            "continue" => TokenKind::Continue,
+            "return" => TokenKind::Return,
+            "true" => TokenKind::Bool(true),
+            "false" => TokenKind::Bool(false),
 
             _ if text.starts_with("cre_") => {
                 let ty = text.trim_start_matches("cre_").to_string();
-                Token::CreateType(ty)
+                TokenKind::CreateType(ty)
             }
 
-            _ => Token::Ident(text),
-        }
+            _ => TokenKind::Ident(text),
+        };
+
+        Token::new(kind, line, column)
     }
 
-    fn read_number(&mut self) -> Result<Token, String> {
+    fn read_number(&mut self, line: usize, column: usize) -> Result<Token, String> {
         let start = self.pos;
 
         while let Some(ch) = self.current() {
@@ -187,12 +226,15 @@ impl Lexer {
         let text: String = self.input[start..self.pos].iter().collect();
 
         match text.parse::<i64>() {
-            Ok(value) => Ok(Token::Int(value)),
-            Err(_) => Err(format!("Invalid integer literal: {}", text)),
+            Ok(value) => Ok(Token::new(TokenKind::Int(value), line, column)),
+            Err(_) => Err(format!(
+                "line {}, column {}: Invalid integer literal '{}'",
+                line, column, text
+            )),
         }
     }
 
-    fn read_string(&mut self) -> Result<Token, String> {
+    fn read_string(&mut self, line: usize, column: usize) -> Result<Token, String> {
         self.advance();
 
         let mut value = String::new();
@@ -201,7 +243,7 @@ impl Lexer {
             match ch {
                 '"' => {
                     self.advance();
-                    return Ok(Token::Str(value));
+                    return Ok(Token::new(TokenKind::Str(value), line, column));
                 }
 
                 '\\' => {
@@ -214,11 +256,17 @@ impl Lexer {
                         Some('\\') => '\\',
 
                         Some(other) => {
-                            return Err(format!("Invalid escape sequence: \\{}", other));
+                            return Err(format!(
+                                "line {}, column {}: Invalid escape sequence '\\{}'",
+                                self.line, self.column, other
+                            ));
                         }
 
                         None => {
-                            return Err("Unterminated escape sequence in string".to_string());
+                            return Err(format!(
+                                "line {}, column {}: Unterminated escape sequence in string",
+                                line, column
+                            ));
                         }
                     };
 
@@ -233,7 +281,10 @@ impl Lexer {
             }
         }
 
-        Err("Unterminated string literal".to_string())
+        Err(format!(
+            "line {}, column {}: Unterminated string literal",
+            line, column
+        ))
     }
 
     fn skip_whitespace_and_comments(&mut self) {
@@ -271,7 +322,16 @@ impl Lexer {
     }
 
     fn advance(&mut self) {
-        self.pos += 1;
+        if let Some(ch) = self.current() {
+            self.pos += 1;
+
+            if ch == '\n' {
+                self.line += 1;
+                self.column = 1;
+            } else {
+                self.column += 1;
+            }
+        }
     }
 }
 

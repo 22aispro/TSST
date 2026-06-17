@@ -1,9 +1,15 @@
 #[derive(Debug, Clone, PartialEq)]
-pub enum Token {
+pub enum TokenKind {
     Pub,
     Fcn,
     If,
     Else,
+    While,
+    For,
+    In,
+    Break,
+    Continue,
+    Return,
 
     CreateType(String),
 
@@ -20,9 +26,11 @@ pub enum Token {
     Greater,
     LessEq,
     GreaterEq,
+    Arrow,
 
     Semi,
     Comma,
+    Colon,
 
     Plus,
     Minus,
@@ -33,6 +41,21 @@ pub enum Token {
     RParen,
     LBrace,
     RBrace,
+    LBracket,
+    RBracket,
 
     Eof,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Token {
+    pub kind: TokenKind,
+    pub line: usize,
+    pub column: usize,
+}
+
+impl Token {
+    pub fn new(kind: TokenKind, line: usize, column: usize) -> Self {
+        Self { kind, line, column }
+    }
 }
