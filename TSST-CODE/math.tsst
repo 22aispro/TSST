@@ -1,0 +1,7 @@
+pub fcn add (cre_int a, cre_int b) -> int {
+    return a + b;
+}
+
+pub fcn multiply (cre_int a, cre_int b) -> int {
+    return a * b;
+}

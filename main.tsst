@@ -1,3 +1,0 @@
-pub fcn main () {
-    cons!("Hello World!");
-}
