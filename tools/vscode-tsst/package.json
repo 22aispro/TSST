@@ -1,0 +1,39 @@
+{
+  "name": "vscode-tsst",
+  "displayName": "TSST Language Support",
+  "description": "Syntax highlighting and autocomplete for TSST",
+  "version": "0.0.1",
+  "publisher": "rere",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:tsst"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "tsst",
+        "aliases": [
+          "TSST",
+          "tsst"
+        ],
+        "extensions": [
+          ".tsst"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "tsst",
+        "scopeName": "source.tsst",
+        "path": "./syntaxes/tsst.tmLanguage.json"
+      }
+    ]
+  }
+}

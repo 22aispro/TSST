@@ -1,0 +1,48 @@
+{
+  "scopeName": "source.tsst",
+  "patterns": [
+    {
+      "name": "comment.line.double-slash.tsst",
+      "match": "//.*$"
+    },
+    {
+      "name": "string.quoted.double.tsst",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.tsst",
+          "match": "\\\\."
+        }
+      ]
+    },
+    {
+      "name": "constant.numeric.integer.tsst",
+      "match": "\\b[0-9]+\\b"
+    },
+    {
+      "name": "constant.language.boolean.tsst",
+      "match": "\\b(true|false)\\b"
+    },
+    {
+      "name": "storage.type.tsst",
+      "match": "\\b(cre_int|cre_str|cre_bool|cre_arr|cre_dict)\\b"
+    },
+    {
+      "name": "keyword.control.tsst",
+      "match": "\\b(pub|fcn|return|if|else|while|for|in|break|continue|use)\\b"
+    },
+    {
+      "name": "support.function.macro.tsst",
+      "match": "\\b(cons|push|set)!"
+    },
+    {
+      "name": "support.function.builtin.tsst",
+      "match": "\\b(len)\\b"
+    },
+    {
+      "name": "keyword.operator.tsst",
+      "match": "(==|!=|<=|>=|->|=|<|>|\\+|-|\\*|/)"
+    }
+  ]
+}

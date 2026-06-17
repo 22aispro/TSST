@@ -1,9 +1,3 @@
-use "math.tsst";
-
 pub fcn main () {
-    cre_int x = add(5, 10);
-    cre_int y = multiply(x, 2);
-
-    cons!("x: " + x);
-    cons!("y: " + y);
+    cons!("Hello, World!");
 }

@@ -3,6 +3,7 @@ mod interpreter;
 mod lexer;
 mod parser;
 mod token;
+mod typechecker;
 
 use std::collections::HashSet;
 use std::env;
@@ -12,6 +13,7 @@ use std::path::{Path, PathBuf};
 use interpreter::Interpreter;
 use lexer::Lexer;
 use parser::Parser;
+use typechecker::TypeChecker;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -51,6 +53,13 @@ fn main() {
             return;
         }
     };
+
+    let mut typechecker = TypeChecker::new();
+
+    if let Err(error) = typechecker.check_program(&program) {
+        eprintln!("Type error: {}", error);
+        return;
+    }
 
     let mut interpreter = Interpreter::new();
 
