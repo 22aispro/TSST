@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TSST Documentation</title>
   <link rel="stylesheet" href="styles.css" />
+  <script src="highlight.js" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -18,438 +18,420 @@
         </span>
       </a>
 
-```
-  <nav class="side-nav">
-    <p>Getting Started</p>
-    <a href="#overview">Overview</a>
-    <a href="#install">Install</a>
-    <a href="#project">Create a Project</a>
+      <nav class="side-nav">
+        <p>Getting Started</p>
+        <a href="#overview">Overview</a>
+        <a href="#install">Install</a>
+        <a href="#project">Create a Project</a>
 
-    <p>Language</p>
-    <a href="#variables">Variables</a>
-    <a href="#functions">Functions</a>
-    <a href="#conditionals">If / Else</a>
-    <a href="#loops">Loops</a>
-    <a href="#arrays">Arrays</a>
-    <a href="#dictionaries">Dictionaries</a>
-    <a href="#imports">Imports</a>
-    <a href="#builtins">Built-ins</a>
+        <p>Language</p>
+        <a href="#variables">Variables</a>
+        <a href="#functions">Functions</a>
+        <a href="#conditionals">If / Else</a>
+        <a href="#loops">Loops</a>
+        <a href="#arrays">Arrays</a>
+        <a href="#dictionaries">Dictionaries</a>
+        <a href="#imports">Imports</a>
+        <a href="#builtins">Built-ins</a>
 
-    <p>Tools</p>
-    <a href="#vscode">VS Code Extension</a>
-    <a href="#roadmap">Roadmap</a>
-  </nav>
-</aside>
+        <p>Tools</p>
+        <a href="#vscode">VS Code Extension</a>
+        <a href="#roadmap">Roadmap</a>
+      </nav>
+    </aside>
 
-<div class="page">
-  <header class="topbar">
-    <div class="mobile-brand">TSST Docs</div>
+    <div class="page">
+      <header class="topbar">
+        <div class="mobile-brand">TSST Docs</div>
 
-    <label class="search">
-      <span>⌕</span>
-      <input type="text" placeholder="Search documentation..." />
-    </label>
+        <label class="search">
+          <span>⌕</span>
+          <input type="text" placeholder="Search documentation..." />
+        </label>
 
-    <div class="top-actions">
-      <a href="https://github.com/22aispro/TSST" target="_blank">GitHub</a>
-      <a class="top-button" href="#install">Get Started</a>
-    </div>
-  </header>
-
-  <main id="top">
-    <section class="hero">
-      <div class="hero-copy">
-        <div class="eyebrow">Lightweight • Aesthetically Typed • Built in Rust</div>
-        <h1>Build with TSST.</h1>
-        <p>
-          TSST is an experimental programming language with clean typed declarations,
-          functions, loops, arrays, dictionaries, imports, and VS Code support.
-        </p>
-
-        <div class="hero-actions">
-          <a class="button primary" href="#install">Start Building</a>
-          <a class="button ghost" href="#overview">Read the Docs</a>
+        <div class="top-actions">
+          <a href="https://github.com/22aispro/TSST" target="_blank">GitHub</a>
+          <a class="top-button" href="#install">Get Started</a>
         </div>
-      </div>
+      </header>
 
-      <div class="hero-card">
-        <div class="window-bar">
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-        <pre><code>use "math.tsst";
-```
+      <main id="top">
+        <section class="hero">
+          <div class="hero-copy">
+            <div class="eyebrow">Lightweight • Aesthetically Typed • Built in Rust</div>
+            <h1>Build with TSST.</h1>
+            <p>
+              TSST is an experimental programming language with clean typed declarations,
+              functions, loops, arrays, dictionaries, imports, and VS Code support.
+            </p>
+
+            <div class="hero-actions">
+              <a class="button primary" href="#install">Start Building</a>
+              <a class="button ghost" href="#overview">Read the Docs</a>
+            </div>
+          </div>
+
+          <div class="hero-card">
+            <div class="window-bar">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <pre><code class="language-tsst">use "math.tsst";
 
 pub fcn main () {
-cre_int result = add(5, 10);
+    cre_int result = add(5, 10);
 
-```
-cre_arr nums = [10, 20, 30];
-push!(nums, 40);
+    cre_arr nums = [10, 20, 30];
+    push!(nums, 40);
 
-cons!("result: " + result);
+    cre_dict user = {
+        "name": "John Doe",
+        "age": 37,
+    };
 
-for (cre_int n in nums) {
-    cons!(n);
-}
-```
+    set!(user, "admin", true);
 
-}</code></pre> </div> </section>
+    cons!("result: " + result);
+    cons!("name: " + user["name"]);
+    cons!("age: " + user["age"]);
 
-```
-    <section class="section" id="overview">
-      <div class="section-heading">
-        <p class="kicker">Overview</p>
-        <h2>What is TSST?</h2>
-      </div>
-
-      <p class="lead">
-        TSST is a small language focused on readable syntax, simple types,
-        and a clean development experience. It currently runs through a Rust-built CLI
-        and includes a development VS Code extension for syntax coloring and snippets.
-      </p>
-
-      <div class="feature-grid">
-        <article class="feature-card">
-          <div class="icon">⌘</div>
-          <h3>Clean Syntax</h3>
-          <p>Typed declarations like <code>cre_int</code>, <code>cre_str</code>, and <code>cre_dict</code>.</p>
-        </article>
-
-        <article class="feature-card">
-          <div class="icon">↳</div>
-          <h3>Functions</h3>
-          <p>Use parameters, return values, and arrow return types like <code>-> int</code>.</p>
-        </article>
-
-        <article class="feature-card">
-          <div class="icon">▦</div>
-          <h3>Data Structures</h3>
-          <p>Arrays, dictionaries, indexing, mutation macros, and <code>len()</code>.</p>
-        </article>
-
-        <article class="feature-card">
-          <div class="icon">✦</div>
-          <h3>Editor Support</h3>
-          <p>VS Code language recognition, syntax highlighting, and autocomplete snippets.</p>
-        </article>
-      </div>
-    </section>
-
-    <section class="section" id="install">
-      <div class="section-heading">
-        <p class="kicker">Install</p>
-        <h2>Install for development</h2>
-      </div>
-
-      <div class="steps">
-        <article class="step">
-          <span>01</span>
-          <div>
-            <h3>Clone the repo</h3>
-            <pre><code>git clone https://github.com/22aispro/TSST.git
-```
-
-cd TSST</code></pre> </div> </article>
-
-```
-        <article class="step">
-          <span>02</span>
-          <div>
-            <h3>Build the CLI</h3>
-            <pre><code>cargo build --release</code></pre>
+    for (cre_int n in nums) {
+        cons!(n);
+    }
+}</code></pre>
           </div>
-        </article>
+        </section>
 
-        <article class="step">
-          <span>03</span>
-          <div>
-            <h3>Run a TSST file</h3>
-            <pre><code>.\target\release\tsst.exe path/to/main.tsst</code></pre>
+        <section class="section" id="overview">
+          <div class="section-heading">
+            <p class="kicker">Overview</p>
+            <h2>What is TSST?</h2>
           </div>
-        </article>
-      </div>
 
-      <div class="callout">
-        <strong>Tip:</strong> Add <code>target/release</code> to your Windows PATH so you can run
-        <code>tsst main.tsst</code> from any TSST project folder.
-      </div>
-    </section>
+          <p class="lead">
+            TSST is a small language focused on readable syntax, simple types,
+            and a clean development experience. It currently runs through a Rust-built CLI
+            and includes a development VS Code extension for syntax coloring and snippets.
+          </p>
 
-    <section class="section" id="project">
-      <div class="section-heading">
-        <p class="kicker">Projects</p>
-        <h2>Create a TSST project</h2>
-      </div>
+          <div class="feature-grid">
+            <article class="feature-card">
+              <div class="icon">⌘</div>
+              <h3>Clean Syntax</h3>
+              <p>Typed declarations like <code>cre_int</code>, <code>cre_str</code>, and <code>cre_dict</code>.</p>
+            </article>
 
-      <p class="lead">A simple TSST project can be split across multiple files.</p>
+            <article class="feature-card">
+              <div class="icon">↳</div>
+              <h3>Functions</h3>
+              <p>Use parameters, return values, and arrow return types like <code>-> int</code>.</p>
+            </article>
 
-      <div class="two-column">
-        <div>
-          <h3>Folder structure</h3>
-          <pre><code>MyTSSTProject/
-```
+            <article class="feature-card">
+              <div class="icon">▦</div>
+              <h3>Data Structures</h3>
+              <p>Arrays, dictionaries, indexing, mutation macros, and <code>len()</code>.</p>
+            </article>
 
-main.tsst
-math.tsst</code></pre> </div>
+            <article class="feature-card">
+              <div class="icon">✦</div>
+              <h3>Editor Support</h3>
+              <p>VS Code language recognition, syntax highlighting, and autocomplete snippets.</p>
+            </article>
+          </div>
+        </section>
 
-```
-        <div>
-          <h3>Run it</h3>
-          <pre><code>cd MyTSSTProject
-```
+        <section class="section" id="install">
+          <div class="section-heading">
+            <p class="kicker">Install</p>
+            <h2>Install for development</h2>
+          </div>
 
-tsst main.tsst</code></pre> </div> </div> </section>
+          <div class="steps">
+            <article class="step">
+              <span>01</span>
+              <div>
+                <h3>Clone the repo</h3>
+                <pre><code class="language-powershell">git clone https://github.com/22aispro/TSST.git
+cd TSST</code></pre>
+              </div>
+            </article>
 
-```
-    <section class="section" id="variables">
-      <div class="section-heading">
-        <p class="kicker">Syntax</p>
-        <h2>Variables</h2>
-      </div>
+            <article class="step">
+              <span>02</span>
+              <div>
+                <h3>Build the CLI</h3>
+                <pre><code class="language-powershell">cargo build --release</code></pre>
+              </div>
+            </article>
 
-      <pre><code>cre_int age = 10;
-```
+            <article class="step">
+              <span>03</span>
+              <div>
+                <h3>Run a TSST file</h3>
+                <pre><code class="language-powershell">.\target\release\tsst.exe path/to/main.tsst</code></pre>
+              </div>
+            </article>
+          </div>
 
-cre_str name = "Re";
+          <div class="callout">
+            <strong>Tip:</strong> Add <code>target/release</code> to your Windows PATH so you can run
+            <code>tsst main.tsst</code> from any TSST project folder.
+          </div>
+        </section>
+
+        <section class="section" id="project">
+          <div class="section-heading">
+            <p class="kicker">Projects</p>
+            <h2>Create a TSST project</h2>
+          </div>
+
+          <p class="lead">A simple TSST project can be split across multiple files.</p>
+
+          <div class="two-column">
+            <div>
+              <h3>Folder structure</h3>
+              <pre><code class="language-text">MyTSSTProject/
+  main.tsst
+  math.tsst</code></pre>
+            </div>
+
+            <div>
+              <h3>Run it</h3>
+              <pre><code class="language-powershell">cd MyTSSTProject
+tsst main.tsst</code></pre>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="variables">
+          <div class="section-heading">
+            <p class="kicker">Syntax</p>
+            <h2>Variables</h2>
+          </div>
+
+          <pre><code class="language-tsst">cre_int age = 37;
+cre_str name = "John Doe";
 cre_bool cool = true;
 
 cre_arr nums = [1, 2, 3];
 
 cre_dict user = {
-"name": "Re",
-"age": 10,
-};</code></pre> </section>
+    "name": "John Doe",
+    "age": 37,
+};</code></pre>
+        </section>
 
-```
-    <section class="section" id="functions">
-      <div class="section-heading">
-        <p class="kicker">Syntax</p>
-        <h2>Functions</h2>
-      </div>
+        <section class="section" id="functions">
+          <div class="section-heading">
+            <p class="kicker">Syntax</p>
+            <h2>Functions</h2>
+          </div>
 
-      <pre><code>fcn add (cre_int a, cre_int b) -> int {
-return a + b;
-```
-
+          <pre><code class="language-tsst">fcn add (cre_int a, cre_int b) -> int {
+    return a + b;
 }
 
 pub fcn main () {
-cre_int result = add(5, 10);
-cons!(result);
-}</code></pre> </section>
+    cre_int result = add(5, 10);
+    cons!(result);
+}</code></pre>
+        </section>
 
-```
-    <section class="section" id="conditionals">
-      <div class="section-heading">
-        <p class="kicker">Syntax</p>
-        <h2>If / Else</h2>
-      </div>
+        <section class="section" id="conditionals">
+          <div class="section-heading">
+            <p class="kicker">Syntax</p>
+            <h2>If / Else</h2>
+          </div>
 
-      <pre><code>pub fcn main () {
-cre_int age = 10;
+          <pre><code class="language-tsst">pub fcn main () {
+    cre_int age = 37;
 
-if age > 5 {
-    cons!("older than 5");
-} else {
-    cons!("5 or younger");
-}
-```
+    if age > 18 {
+        cons!("adult");
+    } else {
+        cons!("minor");
+    }
+}</code></pre>
+        </section>
 
-}</code></pre> </section>
+        <section class="section" id="loops">
+          <div class="section-heading">
+            <p class="kicker">Syntax</p>
+            <h2>Loops</h2>
+          </div>
 
-```
-    <section class="section" id="loops">
-      <div class="section-heading">
-        <p class="kicker">Syntax</p>
-        <h2>Loops</h2>
-      </div>
+          <div class="two-column">
+            <div>
+              <h3>Classic for loop</h3>
+              <pre><code class="language-tsst">for (cre_int i = 0; i < 5; i = i + 1) {
+    cons!(i);
+}</code></pre>
+            </div>
 
-      <div class="two-column">
-        <div>
-          <h3>Classic for loop</h3>
-          <pre><code>for (cre_int i = 0; i < 5; i = i + 1) {
-cons!(i);
-```
-
-}</code></pre> </div>
-
-```
-        <div>
-          <h3>For-each loop</h3>
-          <pre><code>cre_arr nums = [10, 20, 30];
-```
+            <div>
+              <h3>For-each loop</h3>
+              <pre><code class="language-tsst">cre_arr nums = [10, 20, 30];
 
 for (cre_int n in nums) {
-cons!(n);
-}</code></pre> </div> </div>
+    cons!(n);
+}</code></pre>
+            </div>
+          </div>
 
-```
-      <h3>Break and continue</h3>
-      <pre><code>for (cre_int i = 0; i < 10; i = i + 1) {
-if i == 3 {
-    continue;
-}
+          <h3>Break and continue</h3>
+          <pre><code class="language-tsst">for (cre_int i = 0; i < 10; i = i + 1) {
+    if i == 3 {
+        continue;
+    }
 
-if i == 7 {
-    break;
-}
+    if i == 7 {
+        break;
+    }
 
-cons!(i);
-```
+    cons!(i);
+}</code></pre>
+        </section>
 
-}</code></pre> </section>
+        <section class="section" id="arrays">
+          <div class="section-heading">
+            <p class="kicker">Data</p>
+            <h2>Arrays</h2>
+          </div>
 
-```
-    <section class="section" id="arrays">
-      <div class="section-heading">
-        <p class="kicker">Data</p>
-        <h2>Arrays</h2>
-      </div>
+          <pre><code class="language-tsst">pub fcn main () {
+    cre_arr nums = [10, 20, 30];
 
-      <pre><code>pub fcn main () {
-cre_arr nums = [10, 20, 30];
+    cons!(nums[0]);
+    cons!(len(nums));
 
-cons!(nums[0]);
-cons!(len(nums));
+    push!(nums, 40);
 
-push!(nums, 40);
+    cons!(nums);
+}</code></pre>
+        </section>
 
-cons!(nums);
-```
+        <section class="section" id="dictionaries">
+          <div class="section-heading">
+            <p class="kicker">Data</p>
+            <h2>Dictionaries</h2>
+          </div>
 
-}</code></pre> </section>
+          <pre><code class="language-tsst">pub fcn main () {
+    cre_dict user = {
+        "name": "John Doe",
+        "age": 37,
+    };
 
-```
-    <section class="section" id="dictionaries">
-      <div class="section-heading">
-        <p class="kicker">Data</p>
-        <h2>Dictionaries</h2>
-      </div>
+    cons!(user["name"]);
 
-      <pre><code>pub fcn main () {
-cre_dict user = {
-    "name": "Re",
-    "age": 10,
-};
+    set!(user, "admin", true);
 
-cons!(user["name"]);
+    for (cre_str key in user) {
+        cons!(key);
+        cons!(user[key]);
+    }
+}</code></pre>
+        </section>
 
-set!(user, "admin", true);
+        <section class="section" id="imports">
+          <div class="section-heading">
+            <p class="kicker">Files</p>
+            <h2>Imports</h2>
+          </div>
 
-for (cre_str key in user) {
-    cons!(key);
-    cons!(user[key]);
-}
-```
+          <p class="lead">Imports are relative to the file importing them.</p>
 
-}</code></pre> </section>
-
-```
-    <section class="section" id="imports">
-      <div class="section-heading">
-        <p class="kicker">Files</p>
-        <h2>Imports</h2>
-      </div>
-
-      <p class="lead">Imports are relative to the file importing them.</p>
-
-      <pre><code>use "math.tsst";
-```
+          <pre><code class="language-tsst">use "math.tsst";
 
 pub fcn main () {
-cre_int x = add(5, 10);
-cons!("x: " + x);
-}</code></pre> </section>
+    cre_int x = add(5, 10);
+    cons!("x: " + x);
+}</code></pre>
+        </section>
 
-```
-    <section class="section" id="builtins">
-      <div class="section-heading">
-        <p class="kicker">Built-ins</p>
-        <h2>Built-ins and macros</h2>
-      </div>
+        <section class="section" id="builtins">
+          <div class="section-heading">
+            <p class="kicker">Built-ins</p>
+            <h2>Built-ins and macros</h2>
+          </div>
 
-      <div class="api-list">
-        <article>
-          <h3><code>cons!(value)</code></h3>
-          <p>Prints a value to the console.</p>
-        </article>
+          <div class="api-list">
+            <article>
+              <h3><code>cons!(value)</code></h3>
+              <p>Prints a value to the console.</p>
+            </article>
 
-        <article>
-          <h3><code>len(value)</code></h3>
-          <p>Returns the length of a string, array, or dictionary.</p>
-        </article>
+            <article>
+              <h3><code>len(value)</code></h3>
+              <p>Returns the length of a string, array, or dictionary.</p>
+            </article>
 
-        <article>
-          <h3><code>push!(array, value)</code></h3>
-          <p>Adds a value to an array.</p>
-        </article>
+            <article>
+              <h3><code>push!(array, value)</code></h3>
+              <p>Adds a value to an array.</p>
+            </article>
 
-        <article>
-          <h3><code>set!(dict, key, value)</code></h3>
-          <p>Sets a dictionary key to a value.</p>
-        </article>
-      </div>
-    </section>
+            <article>
+              <h3><code>set!(dict, key, value)</code></h3>
+              <p>Sets a dictionary key to a value.</p>
+            </article>
+          </div>
+        </section>
 
-    <section class="section" id="vscode">
-      <div class="section-heading">
-        <p class="kicker">Editor</p>
-        <h2>VS Code extension</h2>
-      </div>
+        <section class="section" id="vscode">
+          <div class="section-heading">
+            <p class="kicker">Editor</p>
+            <h2>VS Code extension</h2>
+          </div>
 
-      <p class="lead">
-        TSST includes a development VS Code extension for syntax coloring,
-        snippets, autocomplete, and <code>.tsst</code> file recognition.
-      </p>
+          <p class="lead">
+            TSST includes a development VS Code extension for syntax coloring,
+            snippets, autocomplete, and <code>.tsst</code> file recognition.
+          </p>
 
-      <pre><code>cd tools/vscode-tsst
-```
-
+          <pre><code class="language-powershell">cd tools/vscode-tsst
 code .</code></pre>
 
-```
-      <p>
-        Press <strong>F5</strong> in VS Code to open the Extension Development Host,
-        then open a folder with <code>.tsst</code> files.
-      </p>
-    </section>
+          <p>
+            Press <strong>F5</strong> in VS Code to open the Extension Development Host,
+            then open a folder with <code>.tsst</code> files.
+          </p>
+        </section>
 
-    <section class="section" id="roadmap">
-      <div class="section-heading">
-        <p class="kicker">Roadmap</p>
-        <h2>What’s next?</h2>
-      </div>
+        <section class="section" id="roadmap">
+          <div class="section-heading">
+            <p class="kicker">Roadmap</p>
+            <h2>What’s next?</h2>
+          </div>
 
-      <div class="roadmap">
-        <div>
-          <span></span>
-          <p>Smarter VS Code autocomplete for user functions and variables.</p>
-        </div>
-        <div>
-          <span></span>
-          <p>Better typechecker support for arrays and dictionaries.</p>
-        </div>
-        <div>
-          <span></span>
-          <p>Package the VS Code extension as a VSIX.</p>
-        </div>
-        <div>
-          <span></span>
-          <p>Create releases for the TSST CLI.</p>
-        </div>
-      </div>
-    </section>
-  </main>
+          <div class="roadmap">
+            <div>
+              <span></span>
+              <p>Smarter VS Code autocomplete for user functions and variables.</p>
+            </div>
+            <div>
+              <span></span>
+              <p>Better typechecker support for arrays and dictionaries.</p>
+            </div>
+            <div>
+              <span></span>
+              <p>Package the VS Code extension as a VSIX.</p>
+            </div>
+            <div>
+              <span></span>
+              <p>Create releases for the TSST CLI.</p>
+            </div>
+          </div>
+        </section>
+      </main>
 
-  <footer class="footer">
-    <p>TSST is experimental, built for learning, language design, and fun.</p>
-    <a href="https://github.com/22aispro/TSST" target="_blank">github.com/22aispro/TSST</a>
-  </footer>
-</div>
-```
-
+      <footer class="footer">
+        <p>TSST is experimental, built for learning, language design, and fun.</p>
+        <a href="https://github.com/22aispro/TSST" target="_blank">github.com/22aispro/TSST</a>
+      </footer>
+    </div>
   </div>
 </body>
 </html>
