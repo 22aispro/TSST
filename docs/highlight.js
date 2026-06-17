@@ -1,11 +1,48 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const blocks = document.querySelectorAll("code.language-tsst");
+  const tsstBlocks = document.querySelectorAll("code.language-tsst");
 
-  blocks.forEach((block) => {
+  tsstBlocks.forEach((block) => {
     const raw = block.textContent;
     block.innerHTML = highlightTSST(raw);
   });
 });
+
+const KEYWORDS = new Set([
+  "pub",
+  "fcn",
+  "return",
+  "if",
+  "else",
+  "while",
+  "for",
+  "in",
+  "break",
+  "continue",
+  "use",
+]);
+
+const TYPES = new Set([
+  "cre_int",
+  "cre_str",
+  "cre_bool",
+  "cre_arr",
+  "cre_dict",
+]);
+
+const BOOLEANS = new Set([
+  "true",
+  "false",
+]);
+
+const BUILTINS = new Set([
+  "len",
+]);
+
+const MACROS = new Set([
+  "cons",
+  "push",
+  "set",
+]);
 
 function escapeHTML(value) {
   return value
@@ -14,62 +51,127 @@ function escapeHTML(value) {
     .replaceAll(">", "&gt;");
 }
 
+function span(className, value) {
+  return `<span class="${className}">${escapeHTML(value)}</span>`;
+}
+
+function isLetter(value) {
+  return /[A-Za-z_]/.test(value);
+}
+
+function isDigit(value) {
+  return /[0-9]/.test(value);
+}
+
+function isIdentPart(value) {
+  return /[A-Za-z0-9_]/.test(value);
+}
+
 function highlightTSST(code) {
-  let html = escapeHTML(code);
+  let html = "";
+  let i = 0;
 
-  const placeholders = [];
+  while (i < code.length) {
+    const char = code[i];
+    const next = code[i + 1] || "";
 
-  function stash(match, htmlValue) {
-    const key = `__TSST_PLACEHOLDER_${placeholders.length}__`;
-    placeholders.push([key, htmlValue]);
-    return key;
-  }
+    if (char === "/" && next === "/") {
+      let value = "";
 
-  html = html.replace(/\/\/.*$/gm, (match) =>
-    stash(match, `<span class="tok-comment">${match}</span>`)
-  );
+      while (i < code.length && code[i] !== "\n") {
+        value += code[i];
+        i++;
+      }
 
-  html = html.replace(/"([^"\\]|\\.)*"/g, (match) =>
-    stash(match, `<span class="tok-string">${match}</span>`)
-  );
+      html += span("tok-comment", value);
+      continue;
+    }
 
-  html = html.replace(
-    /\b(pub|fcn|return|if|else|while|for|in|break|continue|use)\b/g,
-    `<span class="tok-keyword">$1</span>`
-  );
+    if (char === '"') {
+      let value = char;
+      i++;
 
-  html = html.replace(
-    /\b(cre_int|cre_str|cre_bool|cre_arr|cre_dict)\b/g,
-    `<span class="tok-type">$1</span>`
-  );
+      while (i < code.length) {
+        value += code[i];
 
-  html = html.replace(
-    /\b(true|false)\b/g,
-    `<span class="tok-bool">$1</span>`
-  );
+        if (code[i] === '"' && code[i - 1] !== "\\") {
+          i++;
+          break;
+        }
 
-  html = html.replace(
-    /\b(cons|push|set)!(?=\()/g,
-    `<span class="tok-macro">$1!</span>`
-  );
+        i++;
+      }
 
-  html = html.replace(
-    /\b(len)(?=\()/g,
-    `<span class="tok-builtin">$1</span>`
-  );
+      html += span("tok-string", value);
+      continue;
+    }
 
-  html = html.replace(
-    /\b\d+\b/g,
-    `<span class="tok-number">$&</span>`
-  );
+    if (isDigit(char)) {
+      let value = "";
 
-  html = html.replace(
-    /(==|!=|&lt;=|&gt;=|-&gt;|=|&lt;|&gt;|\+|-|\*|\/)/g,
-    `<span class="tok-op">$1</span>`
-  );
+      while (i < code.length && isDigit(code[i])) {
+        value += code[i];
+        i++;
+      }
 
-  for (const [key, value] of placeholders) {
-    html = html.replaceAll(key, value);
+      html += span("tok-number", value);
+      continue;
+    }
+
+    if (isLetter(char)) {
+      let value = "";
+
+      while (i < code.length && isIdentPart(code[i])) {
+        value += code[i];
+        i++;
+      }
+
+      if (code[i] === "!" && MACROS.has(value)) {
+        html += span("tok-macro", value + "!");
+        i++;
+        continue;
+      }
+
+      if (KEYWORDS.has(value)) {
+        html += span("tok-keyword", value);
+        continue;
+      }
+
+      if (TYPES.has(value)) {
+        html += span("tok-type", value);
+        continue;
+      }
+
+      if (BOOLEANS.has(value)) {
+        html += span("tok-bool", value);
+        continue;
+      }
+
+      if (BUILTINS.has(value)) {
+        html += span("tok-builtin", value);
+        continue;
+      }
+
+      html += escapeHTML(value);
+      continue;
+    }
+
+    const twoChar = char + next;
+
+    if (["==", "!=", "<=", ">=", "->"].includes(twoChar)) {
+      html += span("tok-op", twoChar);
+      i += 2;
+      continue;
+    }
+
+    if (["=", "<", ">", "+", "-", "*", "/"].includes(char)) {
+      html += span("tok-op", char);
+      i++;
+      continue;
+    }
+
+    html += escapeHTML(char);
+    i++;
   }
 
   return html;
