@@ -1,0 +1,27 @@
+pub fcn main () {
+    cre_int x = 5 + 10 * 2;
+    cre_int y = (5 + 10) * 2;
+    cre_bool alive = true;
+
+    cons!(x);
+    cons!(y);
+    cons!(alive);
+    cons!(x > y);
+    cons!(x < y);
+    cons!(x == 25);
+    cons!(alive == true);
+
+    if x < y {
+        cons!("x is smaller");
+    } else {
+        cons!("x is not smaller");
+    }
+
+    x = x + 100;
+
+    if x > y {
+        cons!("x is bigger now");
+    } else {
+        cons!("x is still not bigger");
+    }
+}
