@@ -41,6 +41,33 @@ fn main() {
             }
         }
 
+        "list" => {
+            if let Err(error) = list_packages() {
+                eprintln!("List error: {}", error);
+            }
+        }
+
+        "remove" => {
+            let package_name = match args.get(2) {
+                Some(name) => name,
+                None => {
+                    eprintln!("Remove error: Missing package name.");
+                    eprintln!("Usage: tsst remove <package>");
+                    return;
+                }
+            };
+
+            if let Err(error) = remove_package(package_name) {
+                eprintln!("Remove error: {}", error);
+            }
+        }
+
+        "update" => {
+            if let Err(error) = update_packages() {
+                eprintln!("Update error: {}", error);
+            }
+        }
+
         "run" => {
             let file_path = args
                 .get(2)
@@ -64,12 +91,16 @@ fn print_help() {
     println!("  tsst run <file.tsst>      Run a TSST file");
     println!("  tsst init [name]          Create a new TSST project");
     println!("  tsst install              Install packages from tsst.json");
+    println!("  tsst list                 Show installed packages");
+    println!("  tsst remove <package>     Remove an installed package");
+    println!("  tsst update               Reinstall all packages from tsst.json");
     println!("  tsst help                 Show this help menu");
     println!();
     println!("Examples:");
     println!("  tsst init MyApp");
     println!("  cd MyApp");
     println!("  tsst install");
+    println!("  tsst list");
     println!("  tsst main.tsst");
 }
 
@@ -212,6 +243,88 @@ fn install_packages() -> Result<(), String> {
     println!("  {}", packages_dir.display());
 
     Ok(())
+}
+
+fn list_packages() -> Result<(), String> {
+    let project_root = find_project_root(&env::current_dir().map_err(|error| error.to_string())?)
+        .ok_or_else(|| "Could not find tsst.json in this folder or any parent folder.".to_string())?;
+
+    let packages_dir = project_root.join("packages");
+
+    if !packages_dir.exists() {
+        println!("No packages folder found.");
+        return Ok(());
+    }
+
+    let mut packages = Vec::new();
+
+    for entry in fs::read_dir(&packages_dir).map_err(|error| error.to_string())? {
+        let entry = entry.map_err(|error| error.to_string())?;
+        let path = entry.path();
+
+        if path.is_dir() {
+            if let Some(name) = entry.file_name().to_str() {
+                packages.push(name.to_string());
+            }
+        }
+    }
+
+    packages.sort();
+
+    if packages.is_empty() {
+        println!("No packages installed.");
+        return Ok(());
+    }
+
+    println!("Installed packages:");
+
+    for package in packages {
+        println!("  {}", package);
+    }
+
+    Ok(())
+}
+
+fn remove_package(package_name: &str) -> Result<(), String> {
+    let project_root = find_project_root(&env::current_dir().map_err(|error| error.to_string())?)
+        .ok_or_else(|| "Could not find tsst.json in this folder or any parent folder.".to_string())?;
+
+    let package_dir = project_root.join("packages").join(package_name);
+
+    if !package_dir.exists() {
+        return Err(format!("Package '{}' is not installed.", package_name));
+    }
+
+    if !package_dir.is_dir() {
+        return Err(format!(
+            "Package path exists but is not a folder: {}",
+            package_dir.display()
+        ));
+    }
+
+    fs::remove_dir_all(&package_dir).map_err(|error| error.to_string())?;
+
+    println!("Removed package '{}'.", package_name);
+
+    Ok(())
+}
+
+fn update_packages() -> Result<(), String> {
+    let project_root = find_project_root(&env::current_dir().map_err(|error| error.to_string())?)
+        .ok_or_else(|| "Could not find tsst.json in this folder or any parent folder.".to_string())?;
+
+    let packages_dir = project_root.join("packages");
+
+    if packages_dir.exists() {
+        fs::remove_dir_all(&packages_dir).map_err(|error| error.to_string())?;
+    }
+
+    fs::create_dir_all(&packages_dir).map_err(|error| error.to_string())?;
+
+    println!("Updating packages...");
+    println!();
+
+    install_packages()
 }
 
 fn install_github_package(dependency: &Dependency, package_dir: &Path) -> Result<(), String> {
