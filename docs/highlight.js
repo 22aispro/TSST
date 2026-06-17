@@ -1,9 +1,21 @@
 document.addEventListener("DOMContentLoaded", () => {
   const tsstBlocks = document.querySelectorAll("code.language-tsst");
+  const jsonBlocks = document.querySelectorAll("code.language-json");
+  const shellBlocks = document.querySelectorAll("code.language-powershell");
 
   tsstBlocks.forEach((block) => {
     const raw = block.textContent;
     block.innerHTML = highlightTSST(raw);
+  });
+
+  jsonBlocks.forEach((block) => {
+    const raw = block.textContent;
+    block.innerHTML = highlightJSON(raw);
+  });
+
+  shellBlocks.forEach((block) => {
+    const raw = block.textContent;
+    block.innerHTML = highlightShell(raw);
   });
 });
 
@@ -175,4 +187,112 @@ function highlightTSST(code) {
   }
 
   return html;
+}
+
+function highlightJSON(code) {
+  let html = "";
+  let i = 0;
+
+  while (i < code.length) {
+    const char = code[i];
+
+    if (char === '"') {
+      let value = char;
+      i++;
+
+      while (i < code.length) {
+        value += code[i];
+
+        if (code[i] === '"' && code[i - 1] !== "\\") {
+          i++;
+          break;
+        }
+
+        i++;
+      }
+
+      let nextIndex = i;
+
+      while (nextIndex < code.length && /\s/.test(code[nextIndex])) {
+        nextIndex++;
+      }
+
+      if (code[nextIndex] === ":") {
+        html += span("tok-json-key", value);
+      } else {
+        html += span("tok-json-string", value);
+      }
+
+      continue;
+    }
+
+    if ("{}[]:,".includes(char)) {
+      html += span("tok-json-punc", char);
+      i++;
+      continue;
+    }
+
+    html += escapeHTML(char);
+    i++;
+  }
+
+  return html;
+}
+
+function highlightShell(code) {
+  let html = "";
+  let i = 0;
+
+  while (i < code.length) {
+    const char = code[i];
+
+    if (char === "-") {
+      let value = "";
+
+      while (i < code.length && !/\s/.test(code[i])) {
+        value += code[i];
+        i++;
+      }
+
+      html += span("tok-shell-flag", value);
+      continue;
+    }
+
+    if (/[A-Za-z.\\]/.test(char)) {
+      let value = "";
+
+      while (i < code.length && !/\s/.test(code[i])) {
+        value += code[i];
+        i++;
+      }
+
+      if (isShellCommand(value)) {
+        html += span("tok-shell-command", value);
+      } else {
+        html += escapeHTML(value);
+      }
+
+      continue;
+    }
+
+    html += escapeHTML(char);
+    i++;
+  }
+
+  return html;
+}
+
+function isShellCommand(value) {
+  const command = value.toLowerCase();
+
+  return [
+    "git",
+    "cd",
+    "cargo",
+    "tsst",
+    "code",
+    "vsce",
+    "npm",
+    ".\\target\\release\\tsst.exe",
+  ].includes(command);
 }
