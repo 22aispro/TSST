@@ -34,6 +34,10 @@
         <a href="#imports">Imports</a>
         <a href="#builtins">Built-ins</a>
 
+        <p>Packages</p>
+        <a href="#packages">Package Manager</a>
+        <a href="#quartus-ui">Quartus.ui</a>
+
         <p>Tools</p>
         <a href="#vscode">VS Code Extension</a>
         <a href="#roadmap">Roadmap</a>
@@ -62,12 +66,12 @@
             <h1>Build with TSST.</h1>
             <p>
               TSST is an experimental programming language with clean typed declarations,
-              functions, loops, arrays, dictionaries, imports, and VS Code support.
+              functions, loops, arrays, dictionaries, imports, packages, and VS Code support.
             </p>
 
             <div class="hero-actions">
               <a class="button primary" href="#install">Start Building</a>
-              <a class="button ghost" href="#overview">Read the Docs</a>
+              <a class="button ghost" href="#packages">Use Packages</a>
             </div>
           </div>
 
@@ -77,28 +81,21 @@
               <span></span>
               <span></span>
             </div>
-            <pre><code class="language-tsst">use "math.tsst";
+            <pre><code class="language-tsst">use "ui:ui";
 
 pub fcn main () {
-    cre_int result = add(5, 10);
-
-    cre_arr nums = [10, 20, 30];
-    push!(nums, 40);
+    ui_app_start("Quartus UI Demo");
 
     cre_dict user = {
         "name": "John Doe",
         "age": 37,
     };
 
-    set!(user, "admin", true);
+    ui_card("Profile", user["name"]);
+    ui_number("Age", user["age"]);
+    ui_success("TSST packages work");
 
-    cons!("result: " + result);
-    cons!("name: " + user["name"]);
-    cons!("age: " + user["age"]);
-
-    for (cre_int n in nums) {
-        cons!(n);
-    }
+    ui_app_end();
 }</code></pre>
           </div>
         </section>
@@ -111,8 +108,8 @@ pub fcn main () {
 
           <p class="lead">
             TSST is a small language focused on readable syntax, simple types,
-            and a clean development experience. It currently runs through a Rust-built CLI
-            and includes a development VS Code extension for syntax coloring and snippets.
+            packages, and a clean development experience. It runs through a Rust-built CLI
+            and includes a VS Code extension for syntax coloring and autocomplete.
           </p>
 
           <div class="feature-grid">
@@ -135,9 +132,21 @@ pub fcn main () {
             </article>
 
             <article class="feature-card">
+              <div class="icon">⬡</div>
+              <h3>Packages</h3>
+              <p>Install GitHub packages with <code>tsst install</code> and import them with <code>use "ui:ui";</code>.</p>
+            </article>
+
+            <article class="feature-card">
               <div class="icon">✦</div>
               <h3>Editor Support</h3>
-              <p>VS Code language recognition, syntax highlighting, and autocomplete snippets.</p>
+              <p>VS Code language recognition, syntax highlighting, autocomplete, and snippets.</p>
+            </article>
+
+            <article class="feature-card">
+              <div class="icon">⚡</div>
+              <h3>Fast CLI</h3>
+              <p>Create projects with <code>tsst init</code>, install packages, and run files from any folder.</p>
             </article>
           </div>
         </section>
@@ -187,22 +196,29 @@ cd TSST</code></pre>
             <h2>Create a TSST project</h2>
           </div>
 
-          <p class="lead">A simple TSST project can be split across multiple files.</p>
+          <p class="lead">
+            Create a project anywhere with <code>tsst init</code>.
+          </p>
 
           <div class="two-column">
             <div>
-              <h3>Folder structure</h3>
-              <pre><code class="language-text">MyTSSTProject/
-  main.tsst
-  math.tsst</code></pre>
+              <h3>Create an app</h3>
+              <pre><code class="language-powershell">cd C:\Users\YourName\Desktop
+tsst init MyApp
+cd MyApp</code></pre>
             </div>
 
             <div>
               <h3>Run it</h3>
-              <pre><code class="language-powershell">cd MyTSSTProject
-tsst main.tsst</code></pre>
+              <pre><code class="language-powershell">tsst main.tsst</code></pre>
             </div>
           </div>
+
+          <h3>Generated structure</h3>
+          <pre><code class="language-text">MyApp/
+  main.tsst
+  tsst.json
+  packages/</code></pre>
         </section>
 
         <section class="section" id="variables">
@@ -341,13 +357,26 @@ for (cre_int n in nums) {
             <h2>Imports</h2>
           </div>
 
-          <p class="lead">Imports are relative to the file importing them.</p>
+          <p class="lead">
+            Relative imports load another <code>.tsst</code> file from your project.
+          </p>
 
           <pre><code class="language-tsst">use "math.tsst";
 
 pub fcn main () {
     cre_int x = add(5, 10);
     cons!("x: " + x);
+}</code></pre>
+
+          <h3>Package imports</h3>
+          <p class="lead">
+            Package imports load files from the <code>packages/</code> folder.
+          </p>
+
+          <pre><code class="language-tsst">use "ui:ui";
+
+pub fcn main () {
+    ui_success("Loaded package");
 }</code></pre>
         </section>
 
@@ -380,6 +409,129 @@ pub fcn main () {
           </div>
         </section>
 
+        <section class="section" id="packages">
+          <div class="section-heading">
+            <p class="kicker">Packages</p>
+            <h2>Install packages from GitHub</h2>
+          </div>
+
+          <p class="lead">
+            TSST uses a <code>tsst.json</code> file to install dependencies.
+            Packages are cloned into your local <code>packages/</code> folder.
+          </p>
+
+          <h3>tsst.json</h3>
+
+          <pre><code class="language-json">{
+  "name": "MyApp",
+  "version": "0.1.0",
+  "dependencies": {
+    "ui": "github:22aispro/Quartus.ui"
+  }
+}</code></pre>
+
+          <p>Install dependencies:</p>
+
+          <pre><code class="language-powershell">tsst install</code></pre>
+
+          <p>After install, the package is placed here:</p>
+
+          <pre><code class="language-text">MyApp/
+  packages/
+    ui/
+      ui.tsst</code></pre>
+
+          <p>Use the package in your TSST file:</p>
+
+          <pre><code class="language-tsst">use "ui:ui";
+
+pub fcn main () {
+    ui_success("Package loaded");
+}</code></pre>
+        </section>
+
+        <section class="section" id="quartus-ui">
+          <div class="section-heading">
+            <p class="kicker">Official Package</p>
+            <h2>Quartus.ui</h2>
+          </div>
+
+          <p class="lead">
+            <strong>Quartus.ui</strong> is a console UI package for TSST.
+            It gives you titles, cards, labels, progress bars, checkboxes, and status messages.
+          </p>
+
+          <div class="two-column">
+            <div>
+              <h3>Install</h3>
+              <pre><code class="language-json">{
+  "name": "MyApp",
+  "version": "0.1.0",
+  "dependencies": {
+    "ui": "github:22aispro/Quartus.ui"
+  }
+}</code></pre>
+            </div>
+
+            <div>
+              <h3>Command</h3>
+              <pre><code class="language-powershell">tsst install</code></pre>
+            </div>
+          </div>
+
+          <h3>Example</h3>
+
+          <pre><code class="language-tsst">use "ui:ui";
+
+pub fcn main () {
+    ui_app_start("Quartus UI Demo");
+
+    ui_title("Dashboard");
+
+    ui_card("Profile", "John Doe");
+    ui_number("Age", 37);
+    ui_bool("Admin", true);
+
+    ui_success("Quartus.ui loaded from GitHub");
+
+    ui_app_end();
+}</code></pre>
+
+          <h3>Common functions</h3>
+
+          <div class="api-list">
+            <article>
+              <h3><code>ui_app_start(app_name)</code></h3>
+              <p>Prints an app banner and start message.</p>
+            </article>
+
+            <article>
+              <h3><code>ui_title(text)</code></h3>
+              <p>Prints a styled title section.</p>
+            </article>
+
+            <article>
+              <h3><code>ui_card(title, body)</code></h3>
+              <p>Prints a simple console card.</p>
+            </article>
+
+            <article>
+              <h3><code>ui_success(text)</code></h3>
+              <p>Prints a success message.</p>
+            </article>
+
+            <article>
+              <h3><code>ui_number(label, value)</code></h3>
+              <p>Prints a label with an integer value.</p>
+            </article>
+
+            <article>
+              <h3><code>ui_app_end()</code></h3>
+              <p>Prints an ending message and divider.</p>
+            </article>
+          </div>
+        </section>
+
         <section class="section" id="vscode">
           <div class="section-heading">
             <p class="kicker">Editor</p>
@@ -387,17 +539,22 @@ pub fcn main () {
           </div>
 
           <p class="lead">
-            TSST includes a development VS Code extension for syntax coloring,
+            TSST includes a VS Code extension for syntax coloring,
             snippets, autocomplete, and <code>.tsst</code> file recognition.
           </p>
 
+          <h3>Development mode</h3>
           <pre><code class="language-powershell">cd tools/vscode-tsst
 code .</code></pre>
 
           <p>
-            Press <strong>F5</strong> in VS Code to open the Extension Development Host,
-            then open a folder with <code>.tsst</code> files.
+            Press <strong>F5</strong> in VS Code to open the Extension Development Host.
           </p>
+
+          <h3>Install permanently with VSIX</h3>
+          <pre><code class="language-powershell">cd tools/vscode-tsst
+vsce package
+code --install-extension .\vscode-tsst-0.0.1.vsix</code></pre>
         </section>
 
         <section class="section" id="roadmap">
@@ -413,15 +570,19 @@ code .</code></pre>
             </div>
             <div>
               <span></span>
+              <p>Better package commands like update, remove, and list.</p>
+            </div>
+            <div>
+              <span></span>
               <p>Better typechecker support for arrays and dictionaries.</p>
             </div>
             <div>
               <span></span>
-              <p>Package the VS Code extension as a VSIX.</p>
+              <p>Create official releases for the TSST CLI.</p>
             </div>
             <div>
               <span></span>
-              <p>Create releases for the TSST CLI.</p>
+              <p>Publish the VS Code extension later.</p>
             </div>
           </div>
         </section>
