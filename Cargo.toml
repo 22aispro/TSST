@@ -1,6 +1,8 @@
 [package]
 name = "tsst-lang"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
-[dependencies]
+[[bin]]
+name = "tsst"
+path = "src/main.rs"
