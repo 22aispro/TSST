@@ -3,27 +3,77 @@ mod interpreter;
 mod lexer;
 mod parser;
 mod token;
-mod typechecker;
+
+use interpreter::Interpreter;
+use lexer::Lexer;
+use parser::Parser;
 
 use std::collections::HashSet;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
-
-use interpreter::Interpreter;
-use lexer::Lexer;
-use parser::Parser;
-use typechecker::TypeChecker;
+use std::process::Command;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    let file_path = if args.len() > 1 {
-        PathBuf::from(&args[1])
-    } else {
-        PathBuf::from("src/main.tsst")
-    };
+    if args.len() <= 1 {
+        run_file(PathBuf::from("src/main.tsst"));
+        return;
+    }
 
+    match args[1].as_str() {
+        "help" | "--help" | "-h" => {
+            print_help();
+        }
+
+        "init" => {
+            let project_name = args.get(2).map(|value| value.as_str());
+
+            if let Err(error) = init_project(project_name) {
+                eprintln!("Init error: {}", error);
+            }
+        }
+
+        "install" => {
+            if let Err(error) = install_packages() {
+                eprintln!("Install error: {}", error);
+            }
+        }
+
+        "run" => {
+            let file_path = args
+                .get(2)
+                .map(PathBuf::from)
+                .unwrap_or_else(|| PathBuf::from("main.tsst"));
+
+            run_file(file_path);
+        }
+
+        file_path => {
+            run_file(PathBuf::from(file_path));
+        }
+    }
+}
+
+fn print_help() {
+    println!("TSST");
+    println!();
+    println!("Usage:");
+    println!("  tsst <file.tsst>          Run a TSST file");
+    println!("  tsst run <file.tsst>      Run a TSST file");
+    println!("  tsst init [name]          Create a new TSST project");
+    println!("  tsst install              Install packages from tsst.json");
+    println!("  tsst help                 Show this help menu");
+    println!();
+    println!("Examples:");
+    println!("  tsst init MyApp");
+    println!("  cd MyApp");
+    println!("  tsst install");
+    println!("  tsst main.tsst");
+}
+
+fn run_file(file_path: PathBuf) {
     let mut imported_files = HashSet::new();
 
     let source = match read_source_with_imports(&file_path, &mut imported_files) {
@@ -54,13 +104,6 @@ fn main() {
         }
     };
 
-    let mut typechecker = TypeChecker::new();
-
-    if let Err(error) = typechecker.check_program(&program) {
-        eprintln!("Type error: {}", error);
-        return;
-    }
-
     let mut interpreter = Interpreter::new();
 
     if let Err(error) = interpreter.run(&program) {
@@ -68,73 +111,483 @@ fn main() {
     }
 }
 
-fn read_source_with_imports(
-    file_path: &Path,
-    imported_files: &mut HashSet<PathBuf>,
-) -> Result<String, String> {
-    let canonical_path = fs::canonicalize(file_path)
-        .map_err(|error| format!("Could not find file '{}': {}", file_path.display(), error))?;
+fn init_project(project_name: Option<&str>) -> Result<(), String> {
+    let project_dir = match project_name {
+        Some(name) => PathBuf::from(name),
+        None => env::current_dir().map_err(|error| error.to_string())?,
+    };
 
-    if imported_files.contains(&canonical_path) {
-        return Ok(String::new());
+    fs::create_dir_all(&project_dir).map_err(|error| error.to_string())?;
+
+    let packages_dir = project_dir.join("packages");
+    fs::create_dir_all(&packages_dir).map_err(|error| error.to_string())?;
+
+    let main_file = project_dir.join("main.tsst");
+    let tsst_json = project_dir.join("tsst.json");
+
+    if !main_file.exists() {
+        fs::write(
+            &main_file,
+            r#"pub fcn main () {
+    cons!("Hello from TSST!");
+}
+"#,
+        )
+        .map_err(|error| error.to_string())?;
     }
 
-    imported_files.insert(canonical_path.clone());
+    if !tsst_json.exists() {
+        let name = project_dir
+            .file_name()
+            .and_then(|value| value.to_str())
+            .unwrap_or("tsst-app");
 
-    let source = fs::read_to_string(&canonical_path)
-        .map_err(|error| format!("Could not read file '{}': {}", canonical_path.display(), error))?;
+        fs::write(
+            &tsst_json,
+            format!(
+                r#"{{
+  "name": "{}",
+  "version": "0.1.0",
+  "dependencies": {{}}
+}}
+"#,
+                name
+            ),
+        )
+        .map_err(|error| error.to_string())?;
+    }
 
-    let base_dir = canonical_path.parent().unwrap_or(Path::new("."));
+    println!("Created TSST project at {}", project_dir.display());
+    println!();
+    println!("Next:");
+    println!("  cd {}", project_dir.display());
+    println!("  tsst main.tsst");
 
-    let mut combined_source = String::new();
+    Ok(())
+}
 
-    for (line_index, line) in source.lines().enumerate() {
-        let line_number = line_index + 1;
-        let trimmed = line.trim();
+fn install_packages() -> Result<(), String> {
+    let project_root = find_project_root(&env::current_dir().map_err(|error| error.to_string())?)
+        .ok_or_else(|| "Could not find tsst.json in this folder or any parent folder.".to_string())?;
 
-        if trimmed.starts_with("use") {
-            let import_path = parse_use_line(trimmed).ok_or(format!(
-                "{}:{}: invalid import syntax. Use: use \"file.tsst\";",
-                canonical_path.display(),
-                line_number
-            ))?;
+    let manifest_path = project_root.join("tsst.json");
+    let manifest = fs::read_to_string(&manifest_path).map_err(|error| error.to_string())?;
 
-            let full_import_path = base_dir.join(import_path);
+    let dependencies = parse_dependencies(&manifest)?;
 
-            let imported_source = read_source_with_imports(&full_import_path, imported_files)?;
+    if dependencies.is_empty() {
+        println!("No dependencies found in tsst.json.");
+        return Ok(());
+    }
 
-            combined_source.push_str("\n// imported file start\n");
-            combined_source.push_str(&imported_source);
-            combined_source.push_str("\n// imported file end\n");
+    let packages_dir = project_root.join("packages");
+    fs::create_dir_all(&packages_dir).map_err(|error| error.to_string())?;
+
+    println!("Installing TSST packages...");
+    println!();
+
+    for dependency in dependencies {
+        let package_dir = packages_dir.join(&dependency.name);
+
+        if package_dir.exists() {
+            fs::remove_dir_all(&package_dir).map_err(|error| error.to_string())?;
+        }
+
+        if dependency.source.starts_with("github:") {
+            install_github_package(&dependency, &package_dir)?;
+        } else if dependency.source.starts_with("path:") {
+            install_path_package(&dependency, &package_dir, &project_root)?;
+        } else if dependency.source.starts_with("https://") || dependency.source.starts_with("http://") {
+            install_git_url_package(&dependency, &package_dir)?;
+        } else {
+            return Err(format!(
+                "Unsupported dependency source for '{}': {}",
+                dependency.name, dependency.source
+            ));
+        }
+    }
+
+    println!();
+    println!("Done. Packages installed into:");
+    println!("  {}", packages_dir.display());
+
+    Ok(())
+}
+
+fn install_github_package(dependency: &Dependency, package_dir: &Path) -> Result<(), String> {
+    let repo = dependency.source.trim_start_matches("github:");
+    let url = format!("https://github.com/{}.git", repo);
+
+    println!("Installing {} from {}", dependency.name, url);
+
+    let status = Command::new("git")
+        .arg("clone")
+        .arg("--depth")
+        .arg("1")
+        .arg(&url)
+        .arg(package_dir)
+        .status()
+        .map_err(|error| {
+            format!(
+                "Failed to run git. Make sure Git is installed and available in PATH. {}",
+                error
+            )
+        })?;
+
+    if !status.success() {
+        return Err(format!("Failed to clone package '{}'.", dependency.name));
+    }
+
+    Ok(())
+}
+
+fn install_git_url_package(dependency: &Dependency, package_dir: &Path) -> Result<(), String> {
+    println!("Installing {} from {}", dependency.name, dependency.source);
+
+    let status = Command::new("git")
+        .arg("clone")
+        .arg("--depth")
+        .arg("1")
+        .arg(&dependency.source)
+        .arg(package_dir)
+        .status()
+        .map_err(|error| {
+            format!(
+                "Failed to run git. Make sure Git is installed and available in PATH. {}",
+                error
+            )
+        })?;
+
+    if !status.success() {
+        return Err(format!("Failed to clone package '{}'.", dependency.name));
+    }
+
+    Ok(())
+}
+
+fn install_path_package(
+    dependency: &Dependency,
+    package_dir: &Path,
+    project_root: &Path,
+) -> Result<(), String> {
+    let relative_path = dependency.source.trim_start_matches("path:");
+    let source_dir = project_root.join(relative_path);
+
+    if !source_dir.exists() {
+        return Err(format!(
+            "Local package path does not exist for '{}': {}",
+            dependency.name,
+            source_dir.display()
+        ));
+    }
+
+    println!("Installing {} from {}", dependency.name, source_dir.display());
+
+    copy_dir_all(&source_dir, package_dir)?;
+
+    Ok(())
+}
+
+fn copy_dir_all(from: &Path, to: &Path) -> Result<(), String> {
+    fs::create_dir_all(to).map_err(|error| error.to_string())?;
+
+    for entry in fs::read_dir(from).map_err(|error| error.to_string())? {
+        let entry = entry.map_err(|error| error.to_string())?;
+        let entry_path = entry.path();
+        let target_path = to.join(entry.file_name());
+
+        if entry_path.is_dir() {
+            copy_dir_all(&entry_path, &target_path)?;
+        } else {
+            fs::copy(&entry_path, &target_path).map_err(|error| error.to_string())?;
+        }
+    }
+
+    Ok(())
+}
+
+#[derive(Debug)]
+struct Dependency {
+    name: String,
+    source: String,
+}
+
+fn parse_dependencies(manifest: &str) -> Result<Vec<Dependency>, String> {
+    let dependencies_key = "\"dependencies\"";
+
+    let key_index = match manifest.find(dependencies_key) {
+        Some(index) => index,
+        None => return Ok(Vec::new()),
+    };
+
+    let after_key = &manifest[key_index + dependencies_key.len()..];
+
+    let object_start_relative = after_key
+        .find('{')
+        .ok_or_else(|| "Expected '{' after dependencies in tsst.json.".to_string())?;
+
+    let object_start = key_index + dependencies_key.len() + object_start_relative;
+
+    let object_end = find_matching_brace(manifest, object_start)
+        .ok_or_else(|| "Could not find end of dependencies object in tsst.json.".to_string())?;
+
+    let object = &manifest[object_start + 1..object_end];
+
+    let mut dependencies = Vec::new();
+    let mut index = 0;
+
+    while index < object.len() {
+        let name_start = match find_next_quote(object, index) {
+            Some(value) => value,
+            None => break,
+        };
+
+        let name_end = find_string_end(object, name_start + 1)
+            .ok_or_else(|| "Invalid dependency name string in tsst.json.".to_string())?;
+
+        let name = object[name_start + 1..name_end].to_string();
+
+        let colon_index = object[name_end + 1..]
+            .find(':')
+            .map(|value| value + name_end + 1)
+            .ok_or_else(|| format!("Expected ':' after dependency '{}'.", name))?;
+
+        let source_start = find_next_quote(object, colon_index + 1)
+            .ok_or_else(|| format!("Expected source string for dependency '{}'.", name))?;
+
+        let source_end = find_string_end(object, source_start + 1)
+            .ok_or_else(|| format!("Invalid source string for dependency '{}'.", name))?;
+
+        let source = object[source_start + 1..source_end].to_string();
+
+        dependencies.push(Dependency { name, source });
+
+        index = source_end + 1;
+    }
+
+    Ok(dependencies)
+}
+
+fn find_matching_brace(value: &str, start: usize) -> Option<usize> {
+    let bytes = value.as_bytes();
+
+    if bytes.get(start)? != &b'{' {
+        return None;
+    }
+
+    let mut depth = 0;
+    let mut in_string = false;
+    let mut escaped = false;
+
+    for index in start..value.len() {
+        let char_value = value.as_bytes()[index] as char;
+
+        if in_string {
+            if escaped {
+                escaped = false;
+            } else if char_value == '\\' {
+                escaped = true;
+            } else if char_value == '"' {
+                in_string = false;
+            }
 
             continue;
         }
 
-        combined_source.push_str(line);
-        combined_source.push('\n');
+        if char_value == '"' {
+            in_string = true;
+            continue;
+        }
+
+        if char_value == '{' {
+            depth += 1;
+        } else if char_value == '}' {
+            depth -= 1;
+
+            if depth == 0 {
+                return Some(index);
+            }
+        }
     }
 
-    Ok(combined_source)
+    None
 }
 
-fn parse_use_line(line: &str) -> Option<String> {
-    let rest = line.strip_prefix("use")?.trim();
+fn find_next_quote(value: &str, start: usize) -> Option<usize> {
+    value[start..].find('"').map(|index| index + start)
+}
 
-    if !rest.starts_with('"') {
+fn find_string_end(value: &str, start: usize) -> Option<usize> {
+    let mut escaped = false;
+
+    for index in start..value.len() {
+        let char_value = value.as_bytes()[index] as char;
+
+        if escaped {
+            escaped = false;
+            continue;
+        }
+
+        if char_value == '\\' {
+            escaped = true;
+            continue;
+        }
+
+        if char_value == '"' {
+            return Some(index);
+        }
+    }
+
+    None
+}
+
+fn read_source_with_imports(
+    file_path: &Path,
+    imported_files: &mut HashSet<PathBuf>,
+) -> Result<String, String> {
+    let full_path = normalize_file_path(file_path)?;
+
+    if imported_files.contains(&full_path) {
+        return Ok(String::new());
+    }
+
+    imported_files.insert(full_path.clone());
+
+    let source = fs::read_to_string(&full_path)
+        .map_err(|error| format!("Could not read '{}': {}", full_path.display(), error))?;
+
+    let mut final_source = String::new();
+
+    for line in source.lines() {
+        if let Some(import_path) = parse_use_import(line) {
+            let resolved_path = resolve_import_path(&full_path, &import_path)?;
+
+            let imported_source = read_source_with_imports(&resolved_path, imported_files)?;
+
+            final_source.push_str(&imported_source);
+            final_source.push('\n');
+        } else {
+            final_source.push_str(line);
+            final_source.push('\n');
+        }
+    }
+
+    Ok(final_source)
+}
+
+fn parse_use_import(line: &str) -> Option<String> {
+    let trimmed = line.trim();
+
+    if !trimmed.starts_with("use ") {
         return None;
     }
 
-    let rest = &rest[1..];
+    let first_quote = trimmed.find('"')?;
+    let rest = &trimmed[first_quote + 1..];
+    let second_quote = rest.find('"')?;
 
-    let end_quote_index = rest.find('"')?;
+    Some(rest[..second_quote].to_string())
+}
 
-    let import_path = rest[..end_quote_index].to_string();
+fn resolve_import_path(importing_file: &Path, import_path: &str) -> Result<PathBuf, String> {
+    let importing_dir = importing_file
+        .parent()
+        .ok_or_else(|| format!("Could not get parent folder for '{}'.", importing_file.display()))?;
 
-    let after_quote = rest[end_quote_index + 1..].trim();
-
-    if after_quote != ";" {
-        return None;
+    if import_path.contains(':') && !import_path.contains("://") {
+        return resolve_package_colon_import(importing_file, import_path);
     }
 
-    Some(import_path)
+    let relative_path = importing_dir.join(import_path);
+
+    if relative_path.exists() {
+        return normalize_file_path(&relative_path);
+    }
+
+    if looks_like_package_slash_import(import_path) {
+        return resolve_package_slash_import(importing_file, import_path);
+    }
+
+    normalize_file_path(&relative_path)
+}
+
+fn resolve_package_colon_import(importing_file: &Path, import_path: &str) -> Result<PathBuf, String> {
+    let mut parts = import_path.splitn(2, ':');
+
+    let package_name = parts
+        .next()
+        .ok_or_else(|| format!("Invalid package import '{}'.", import_path))?;
+
+    let module_name = parts
+        .next()
+        .ok_or_else(|| format!("Invalid package import '{}'.", import_path))?;
+
+    if package_name.trim().is_empty() || module_name.trim().is_empty() {
+        return Err(format!("Invalid package import '{}'.", import_path));
+    }
+
+    let project_root = find_project_root_from_file(importing_file)
+        .ok_or_else(|| "Could not find tsst.json for package import.".to_string())?;
+
+    let module_path = module_name.replace('.', "/");
+    let module_path = ensure_tsst_extension(&module_path);
+
+    normalize_file_path(&project_root.join("packages").join(package_name).join(module_path))
+}
+
+fn resolve_package_slash_import(importing_file: &Path, import_path: &str) -> Result<PathBuf, String> {
+    let project_root = find_project_root_from_file(importing_file)
+        .ok_or_else(|| "Could not find tsst.json for package import.".to_string())?;
+
+    let module_path = ensure_tsst_extension(import_path);
+
+    normalize_file_path(&project_root.join("packages").join(module_path))
+}
+
+fn looks_like_package_slash_import(import_path: &str) -> bool {
+    !import_path.starts_with("./")
+        && !import_path.starts_with("../")
+        && !import_path.ends_with(".tsst")
+        && import_path.contains('/')
+}
+
+fn ensure_tsst_extension(path: &str) -> String {
+    if path.ends_with(".tsst") {
+        path.to_string()
+    } else {
+        format!("{}.tsst", path)
+    }
+}
+
+fn normalize_file_path(path: &Path) -> Result<PathBuf, String> {
+    if path.exists() {
+        fs::canonicalize(path).map_err(|error| {
+            format!(
+                "Could not normalize path '{}': {}",
+                path.display(),
+                error
+            )
+        })
+    } else {
+        Err(format!("File does not exist: {}", path.display()))
+    }
+}
+
+fn find_project_root_from_file(file_path: &Path) -> Option<PathBuf> {
+    let parent = file_path.parent()?;
+    find_project_root(parent)
+}
+
+fn find_project_root(start: &Path) -> Option<PathBuf> {
+    let mut current = start.to_path_buf();
+
+    loop {
+        if current.join("tsst.json").exists() {
+            return Some(current);
+        }
+
+        if !current.pop() {
+            return None;
+        }
+    }
 }
