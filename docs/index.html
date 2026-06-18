@@ -45,7 +45,6 @@
         <p>Packages</p>
         <a href="#packages">Package Manager</a>
         <a href="#quartus">Quartus</a>
-        <a href="#calculator">Calculator Example</a>
 
         <p>Tools</p>
         <a href="#vscode">VS Code Extension</a>
@@ -72,12 +71,12 @@
       <main id="top">
         <section class="hero">
           <div class="hero-copy">
-            <div class="eyebrow">Typed • Compiled • GUI-capable • Built in Rust</div>
+            <div class="eyebrow">Aesthetically Typed • Lightweight • Compiled • Built in Rust</div>
             <h1>Build with TSST.</h1>
             <p>
               TSST is an experimental programming language with typed declarations,
               functions, loops, arrays, dictionaries, imports, packages, a Rust-built CLI,
-              compiled executables, and simple GUI apps styled directly from TSST code.
+              compiled executables, and a lightweight syntax designed to feel clean and aesthetic.
             </p>
 
             <div class="hero-actions">
@@ -137,38 +136,51 @@
           <div class="feature-grid">
             <article class="feature-card">
               <div class="icon">⌘</div>
-              <h3>Clean Syntax</h3>
-              <p>Typed declarations like <code>cre_int</code>, <code>cre_str</code>, <code>cre_bool</code>, <code>cre_arr</code>, and <code>cre_dict</code>.</p>
+              <h3>Aesthetic Syntax</h3>
+              <p>
+                Typed declarations like <code>cre_int</code>, <code>cre_str</code>,
+                <code>cre_bool</code>, <code>cre_arr</code>, and <code>cre_dict</code>.
+              </p>
             </article>
 
             <article class="feature-card">
               <div class="icon">↳</div>
               <h3>Functions</h3>
-              <p>Use parameters, return values, and arrow return types like <code>-> int</code>.</p>
+              <p>
+                Use parameters, return values, and arrow return types like <code>-> int</code>.
+              </p>
             </article>
 
             <article class="feature-card">
               <div class="icon">▦</div>
               <h3>Data Structures</h3>
-              <p>Arrays, dictionaries, indexing, mutation macros, and <code>len()</code>.</p>
+              <p>
+                Arrays, dictionaries, indexing, mutation macros, and <code>len()</code>.
+              </p>
             </article>
 
             <article class="feature-card">
               <div class="icon">⚙</div>
               <h3>Compiled Builds</h3>
-              <p><code>tsst build</code> compiles TSST into Rust and creates a release executable.</p>
+              <p>
+                <code>tsst build</code> compiles TSST into Rust and creates a release executable.
+              </p>
             </article>
 
             <article class="feature-card">
-              <div class="icon">▣</div>
-              <h3>GUI Apps</h3>
-              <p>Create simple windows, labels, buttons, stats, and themes directly from TSST code.</p>
+              <div class="icon">◇</div>
+              <h3>Lightweight</h3>
+              <p>
+                TSST keeps the syntax small, readable, and easy to experiment with.
+              </p>
             </article>
 
             <article class="feature-card">
               <div class="icon">✦</div>
               <h3>Editor Support</h3>
-              <p>VS Code language recognition, syntax highlighting, autocomplete, and snippets.</p>
+              <p>
+                VS Code language recognition, syntax highlighting, autocomplete, and snippets.
+              </p>
             </article>
           </div>
         </section>
@@ -860,136 +872,6 @@ use "quartus:ui";</code></pre>
             <article><h3><code>q_ui_progress(current, total)</code></h3><p>Prints a progress bar.</p></article>
             <article><h3><code>q_ui_checkbox(text, checked)</code></h3><p>Prints a checkbox.</p></article>
           </div>
-        </section>
-
-        <section class="section" id="calculator">
-          <div class="section-heading">
-            <p class="kicker">Example App</p>
-            <h2>Interactive calculator with Quartus</h2>
-          </div>
-
-          <p class="lead">
-            This example reads two numbers and an operation from the terminal,
-            then displays the result using Quartus UI.
-          </p>
-
-          <pre><code class="language-tsst">use "quartus:math";
-use "quartus:ui";
-
-fcn calculate (cre_int a, cre_int b, cre_str operation) -> int {
-    if operation == "+" {
-        return a + b;
-    }
-
-    if operation == "add" {
-        return a + b;
-    }
-
-    if operation == "-" {
-        return a - b;
-    }
-
-    if operation == "subtract" {
-        return a - b;
-    }
-
-    if operation == "*" {
-        return a * b;
-    }
-
-    if operation == "multiply" {
-        return a * b;
-    }
-
-    if operation == "/" {
-        return a / b;
-    }
-
-    if operation == "divide" {
-        return a / b;
-    }
-
-    return 0;
-}
-
-fcn is_valid_operation (cre_str operation) -> bool {
-    if operation == "+" {
-        return true;
-    }
-
-    if operation == "add" {
-        return true;
-    }
-
-    if operation == "-" {
-        return true;
-    }
-
-    if operation == "subtract" {
-        return true;
-    }
-
-    if operation == "*" {
-        return true;
-    }
-
-    if operation == "multiply" {
-        return true;
-    }
-
-    if operation == "/" {
-        return true;
-    }
-
-    if operation == "divide" {
-        return true;
-    }
-
-    return false;
-}
-
-pub fcn main () {
-    q_ui_app_start("Interactive Quartus Calculator");
-
-    q_ui_title("Choose Operation");
-    q_ui_text("+ or add");
-    q_ui_text("- or subtract");
-    q_ui_text("* or multiply");
-    q_ui_text("/ or divide");
-
-    q_ui_space();
-
-    cre_int a = input_int("Enter first number: ");
-    cre_str operation = input_str("Enter operation: ");
-    cre_int b = input_int("Enter second number: ");
-
-    q_ui_space();
-
-    if is_valid_operation(operation) {
-        q_ui_title("Calculator Result");
-
-        q_ui_number("First number", a);
-        q_ui_number("Second number", b);
-        q_ui_text("Operation: " + operation);
-
-        q_ui_space();
-
-        q_ui_number("Result", calculate(a, b, operation));
-
-        q_ui_space();
-
-        q_ui_title("Quartus Extras");
-        q_ui_number("Max", q_max(a, b));
-        q_ui_number("Min", q_min(a, b));
-        q_ui_number("A squared", q_square(a));
-        q_ui_number("B squared", q_square(b));
-    } else {
-        q_ui_error("Invalid operation");
-        q_ui_text("Try +, -, *, /, add, subtract, multiply, or divide.");
-    }
-
-    q_ui_app_end();
-}</code></pre>
         </section>
 
         <section class="section" id="vscode">
