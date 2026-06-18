@@ -27,6 +27,7 @@
         <p>Language</p>
         <a href="#variables">Variables</a>
         <a href="#functions">Functions</a>
+        <a href="#input">Input</a>
         <a href="#conditionals">If / Else</a>
         <a href="#loops">Loops</a>
         <a href="#arrays">Arrays</a>
@@ -36,7 +37,8 @@
 
         <p>Packages</p>
         <a href="#packages">Package Manager</a>
-        <a href="#quartus-ui">Quartus.ui</a>
+        <a href="#quartus">Quartus</a>
+        <a href="#calculator">Calculator Example</a>
 
         <p>Tools</p>
         <a href="#vscode">VS Code Extension</a>
@@ -65,13 +67,14 @@
             <div class="eyebrow">Lightweight • Aesthetically Typed • Built in Rust</div>
             <h1>Build with TSST.</h1>
             <p>
-              TSST is an experimental programming language with clean typed declarations,
-              functions, loops, arrays, dictionaries, imports, packages, and VS Code support.
+              TSST is an experimental programming language with typed declarations,
+              functions, loops, arrays, dictionaries, imports, input, packages,
+              and VS Code support.
             </p>
 
             <div class="hero-actions">
               <a class="button primary" href="#install">Start Building</a>
-              <a class="button ghost" href="#packages">Use Packages</a>
+              <a class="button ghost" href="#quartus">Explore Quartus</a>
             </div>
           </div>
 
@@ -81,21 +84,26 @@
               <span></span>
               <span></span>
             </div>
-            <pre><code class="language-tsst">use "ui:ui";
+            <pre><code class="language-tsst">use "quartus:math";
+use "quartus:ui";
 
 pub fcn main () {
-    ui_app_start("Quartus UI Demo");
+    q_ui_app_start("Calculator");
 
-    cre_dict user = {
-        "name": "John Doe",
-        "age": 37,
-    };
+    cre_int a = input_int("First number: ");
+    cre_str op = input_str("Operation: ");
+    cre_int b = input_int("Second number: ");
 
-    ui_card("Profile", user["name"]);
-    ui_number("Age", user["age"]);
-    ui_success("TSST packages work");
+    if op == "+" {
+        q_ui_number("Result", a + b);
+    }
 
-    ui_app_end();
+    if op == "*" {
+        q_ui_number("Result", a * b);
+    }
+
+    q_ui_success("Done");
+    q_ui_app_end();
 }</code></pre>
           </div>
         </section>
@@ -132,21 +140,21 @@ pub fcn main () {
             </article>
 
             <article class="feature-card">
+              <div class="icon">⌁</div>
+              <h3>Interactive Input</h3>
+              <p>Read user input with <code>input_str()</code> and <code>input_int()</code>.</p>
+            </article>
+
+            <article class="feature-card">
               <div class="icon">⬡</div>
               <h3>Packages</h3>
-              <p>Install GitHub packages with <code>tsst install</code> and import them with <code>use "ui:ui";</code>.</p>
+              <p>Install GitHub packages with <code>tsst install</code> and import with <code>use "quartus:math";</code>.</p>
             </article>
 
             <article class="feature-card">
               <div class="icon">✦</div>
               <h3>Editor Support</h3>
               <p>VS Code language recognition, syntax highlighting, autocomplete, and snippets.</p>
-            </article>
-
-            <article class="feature-card">
-              <div class="icon">⚡</div>
-              <h3>Fast CLI</h3>
-              <p>Create projects with <code>tsst init</code>, install packages, and run files from any folder.</p>
             </article>
           </div>
         </section>
@@ -252,6 +260,39 @@ cre_dict user = {
 pub fcn main () {
     cre_int result = add(5, 10);
     cons!(result);
+}</code></pre>
+        </section>
+
+        <section class="section" id="input">
+          <div class="section-heading">
+            <p class="kicker">Input</p>
+            <h2>Read user input</h2>
+          </div>
+
+          <p class="lead">
+            TSST supports interactive terminal input using built-in functions.
+          </p>
+
+          <div class="api-list">
+            <article>
+              <h3><code>input_str(prompt)</code></h3>
+              <p>Prints a prompt and returns the user's input as a string.</p>
+            </article>
+
+            <article>
+              <h3><code>input_int(prompt)</code></h3>
+              <p>Prints a prompt and returns the user's input as an integer.</p>
+            </article>
+          </div>
+
+          <h3>Example</h3>
+
+          <pre><code class="language-tsst">pub fcn main () {
+    cre_str name = input_str("Name: ");
+    cre_int age = input_int("Age: ");
+
+    cons!("Hello " + name);
+    cons!("Age: " + age);
 }</code></pre>
         </section>
 
@@ -373,10 +414,11 @@ pub fcn main () {
             Package imports load files from the <code>packages/</code> folder.
           </p>
 
-          <pre><code class="language-tsst">use "ui:ui";
+          <pre><code class="language-tsst">use "quartus:math";
+use "quartus:ui";
 
 pub fcn main () {
-    ui_success("Loaded package");
+    q_ui_success("Loaded package");
 }</code></pre>
         </section>
 
@@ -395,6 +437,16 @@ pub fcn main () {
             <article>
               <h3><code>len(value)</code></h3>
               <p>Returns the length of a string, array, or dictionary.</p>
+            </article>
+
+            <article>
+              <h3><code>input_str(prompt)</code></h3>
+              <p>Reads terminal input as a string.</p>
+            </article>
+
+            <article>
+              <h3><code>input_int(prompt)</code></h3>
+              <p>Reads terminal input as an integer.</p>
             </article>
 
             <article>
@@ -426,110 +478,264 @@ pub fcn main () {
   "name": "MyApp",
   "version": "0.1.0",
   "dependencies": {
-    "ui": "github:22aispro/Quartus.ui"
+    "quartus": "github:22aispro/Quartus"
   }
 }</code></pre>
 
-          <p>Install dependencies:</p>
-
-          <pre><code class="language-powershell">tsst install</code></pre>
-
-          <p>After install, the package is placed here:</p>
-
-          <pre><code class="language-text">MyApp/
-  packages/
-    ui/
-      ui.tsst</code></pre>
-
-          <p>Use the package in your TSST file:</p>
-
-          <pre><code class="language-tsst">use "ui:ui";
-
-pub fcn main () {
-    ui_success("Package loaded");
-}</code></pre>
-        </section>
-
-        <section class="section" id="quartus-ui">
-          <div class="section-heading">
-            <p class="kicker">Official Package</p>
-            <h2>Quartus.ui</h2>
-          </div>
-
-          <p class="lead">
-            <strong>Quartus.ui</strong> is a console UI package for TSST.
-            It gives you titles, cards, labels, progress bars, checkboxes, and status messages.
-          </p>
-
-          <div class="two-column">
-            <div>
-              <h3>Install</h3>
-              <pre><code class="language-json">{
-  "name": "MyApp",
-  "version": "0.1.0",
-  "dependencies": {
-    "ui": "github:22aispro/Quartus.ui"
-  }
-}</code></pre>
-            </div>
-
-            <div>
-              <h3>Command</h3>
-              <pre><code class="language-powershell">tsst install</code></pre>
-            </div>
-          </div>
-
-          <h3>Example</h3>
-
-          <pre><code class="language-tsst">use "ui:ui";
-
-pub fcn main () {
-    ui_app_start("Quartus UI Demo");
-
-    ui_title("Dashboard");
-
-    ui_card("Profile", "John Doe");
-    ui_number("Age", 37);
-    ui_bool("Admin", true);
-
-    ui_success("Quartus.ui loaded from GitHub");
-
-    ui_app_end();
-}</code></pre>
-
-          <h3>Common functions</h3>
+          <h3>Commands</h3>
 
           <div class="api-list">
             <article>
-              <h3><code>ui_app_start(app_name)</code></h3>
-              <p>Prints an app banner and start message.</p>
+              <h3><code>tsst install</code></h3>
+              <p>Installs dependencies from <code>tsst.json</code>.</p>
             </article>
 
             <article>
-              <h3><code>ui_title(text)</code></h3>
-              <p>Prints a styled title section.</p>
+              <h3><code>tsst list</code></h3>
+              <p>Lists installed packages in the <code>packages/</code> folder.</p>
             </article>
 
             <article>
-              <h3><code>ui_card(title, body)</code></h3>
-              <p>Prints a simple console card.</p>
+              <h3><code>tsst remove &lt;package&gt;</code></h3>
+              <p>Removes an installed package.</p>
             </article>
 
             <article>
-              <h3><code>ui_success(text)</code></h3>
-              <p>Prints a success message.</p>
-            </article>
-
-            <article>
-              <h3><code>ui_number(label, value)</code></h3>
-              <p>Prints a label with an integer value.</p>
-            </article>
-
-            <article>
-              <h3><code>ui_app_end()</code></h3>
-              <p>Prints an ending message and divider.</p>
+              <h3><code>tsst update</code></h3>
+              <p>Deletes installed packages and reinstalls everything from <code>tsst.json</code>.</p>
             </article>
           </div>
+
+          <h3>Install and use</h3>
+
+          <pre><code class="language-powershell">tsst install
+tsst list</code></pre>
+
+          <pre><code class="language-text">MyApp/
+  packages/
+    quartus/
+      math.tsst
+      text.tsst
+      logic.tsst
+      ui.tsst</code></pre>
+
+          <pre><code class="language-tsst">use "quartus:math";
+use "quartus:ui";
+
+pub fcn main () {
+    q_ui_number("Square", q_square(9));
+}</code></pre>
+        </section>
+
+        <section class="section" id="quartus">
+          <div class="section-heading">
+            <p class="kicker">General Purpose Library</p>
+            <h2>Quartus</h2>
+          </div>
+
+          <p class="lead">
+            <strong>Quartus</strong> is a general-purpose TSST library.
+            It includes helpers for math, text, logic, and console UI.
+          </p>
+
+          <h3>Install Quartus</h3>
+
+          <pre><code class="language-json">{
+  "name": "MyApp",
+  "version": "0.1.0",
+  "dependencies": {
+    "quartus": "github:22aispro/Quartus"
+  }
+}</code></pre>
+
+          <pre><code class="language-powershell">tsst update</code></pre>
+
+          <h3>Import modules</h3>
+
+          <pre><code class="language-tsst">use "quartus:math";
+use "quartus:text";
+use "quartus:logic";
+use "quartus:ui";</code></pre>
+
+          <h3>Math</h3>
+
+          <div class="api-list">
+            <article><h3><code>q_double(n)</code></h3><p>Returns <code>n + n</code>.</p></article>
+            <article><h3><code>q_triple(n)</code></h3><p>Returns <code>n + n + n</code>.</p></article>
+            <article><h3><code>q_square(n)</code></h3><p>Returns <code>n * n</code>.</p></article>
+            <article><h3><code>q_cube(n)</code></h3><p>Returns <code>n * n * n</code>.</p></article>
+            <article><h3><code>q_abs(n)</code></h3><p>Returns the absolute value.</p></article>
+            <article><h3><code>q_min(a, b)</code></h3><p>Returns the smaller number.</p></article>
+            <article><h3><code>q_max(a, b)</code></h3><p>Returns the larger number.</p></article>
+            <article><h3><code>q_clamp(value, min, max)</code></h3><p>Keeps a number inside a range.</p></article>
+            <article><h3><code>q_is_even(n)</code></h3><p>Returns true when a number is even.</p></article>
+            <article><h3><code>q_is_odd(n)</code></h3><p>Returns true when a number is odd.</p></article>
+          </div>
+
+          <h3>Text</h3>
+
+          <div class="api-list">
+            <article><h3><code>q_repeat(value, count)</code></h3><p>Repeats text.</p></article>
+            <article><h3><code>q_quote(value)</code></h3><p>Wraps text in quotes.</p></article>
+            <article><h3><code>q_parens(value)</code></h3><p>Wraps text in parentheses.</p></article>
+            <article><h3><code>q_brackets(value)</code></h3><p>Wraps text in brackets.</p></article>
+            <article><h3><code>q_braces(value)</code></h3><p>Wraps text in braces.</p></article>
+          </div>
+
+          <h3>Logic</h3>
+
+          <div class="api-list">
+            <article><h3><code>q_not(value)</code></h3><p>Returns the opposite boolean.</p></article>
+            <article><h3><code>q_and(a, b)</code></h3><p>Boolean AND helper.</p></article>
+            <article><h3><code>q_or(a, b)</code></h3><p>Boolean OR helper.</p></article>
+            <article><h3><code>q_yes_no(value)</code></h3><p>Converts true/false into yes/no.</p></article>
+            <article><h3><code>q_enabled_disabled(value)</code></h3><p>Converts true/false into enabled/disabled.</p></article>
+          </div>
+
+          <h3>UI</h3>
+
+          <div class="api-list">
+            <article><h3><code>q_ui_app_start(app_name)</code></h3><p>Prints an app banner and start message.</p></article>
+            <article><h3><code>q_ui_app_end()</code></h3><p>Prints an ending message.</p></article>
+            <article><h3><code>q_ui_title(text)</code></h3><p>Prints a styled title.</p></article>
+            <article><h3><code>q_ui_card(title, body)</code></h3><p>Prints a console card.</p></article>
+            <article><h3><code>q_ui_success(text)</code></h3><p>Prints a success message.</p></article>
+            <article><h3><code>q_ui_error(text)</code></h3><p>Prints an error message.</p></article>
+            <article><h3><code>q_ui_warning(text)</code></h3><p>Prints a warning message.</p></article>
+            <article><h3><code>q_ui_info(text)</code></h3><p>Prints an info message.</p></article>
+            <article><h3><code>q_ui_progress(current, total)</code></h3><p>Prints a progress bar.</p></article>
+            <article><h3><code>q_ui_checkbox(text, checked)</code></h3><p>Prints a checkbox.</p></article>
+          </div>
+        </section>
+
+        <section class="section" id="calculator">
+          <div class="section-heading">
+            <p class="kicker">Example App</p>
+            <h2>Interactive calculator with Quartus</h2>
+          </div>
+
+          <p class="lead">
+            This example reads two numbers and an operation from the terminal,
+            then displays the result using Quartus UI.
+          </p>
+
+          <pre><code class="language-tsst">use "quartus:math";
+use "quartus:ui";
+
+fcn calculate (cre_int a, cre_int b, cre_str operation) -> int {
+    if operation == "+" {
+        return a + b;
+    }
+
+    if operation == "add" {
+        return a + b;
+    }
+
+    if operation == "-" {
+        return a - b;
+    }
+
+    if operation == "subtract" {
+        return a - b;
+    }
+
+    if operation == "*" {
+        return a * b;
+    }
+
+    if operation == "multiply" {
+        return a * b;
+    }
+
+    if operation == "/" {
+        return a / b;
+    }
+
+    if operation == "divide" {
+        return a / b;
+    }
+
+    return 0;
+}
+
+fcn is_valid_operation (cre_str operation) -> bool {
+    if operation == "+" {
+        return true;
+    }
+
+    if operation == "add" {
+        return true;
+    }
+
+    if operation == "-" {
+        return true;
+    }
+
+    if operation == "subtract" {
+        return true;
+    }
+
+    if operation == "*" {
+        return true;
+    }
+
+    if operation == "multiply" {
+        return true;
+    }
+
+    if operation == "/" {
+        return true;
+    }
+
+    if operation == "divide" {
+        return true;
+    }
+
+    return false;
+}
+
+pub fcn main () {
+    q_ui_app_start("Interactive Quartus Calculator");
+
+    q_ui_title("Choose Operation");
+    q_ui_text("+ or add");
+    q_ui_text("- or subtract");
+    q_ui_text("* or multiply");
+    q_ui_text("/ or divide");
+
+    q_ui_space();
+
+    cre_int a = input_int("Enter first number: ");
+    cre_str operation = input_str("Enter operation: ");
+    cre_int b = input_int("Enter second number: ");
+
+    q_ui_space();
+
+    if is_valid_operation(operation) {
+        q_ui_title("Calculator Result");
+
+        q_ui_number("First number", a);
+        q_ui_number("Second number", b);
+        q_ui_text("Operation: " + operation);
+
+        q_ui_space();
+
+        q_ui_number("Result", calculate(a, b, operation));
+
+        q_ui_space();
+
+        q_ui_title("Quartus Extras");
+        q_ui_number("Max", q_max(a, b));
+        q_ui_number("Min", q_min(a, b));
+        q_ui_number("A squared", q_square(a));
+        q_ui_number("B squared", q_square(b));
+    } else {
+        q_ui_error("Invalid operation");
+        q_ui_text("Try +, -, *, /, add, subtract, multiply, or divide.");
+    }
+
+    q_ui_app_end();
+}</code></pre>
         </section>
 
         <section class="section" id="vscode">
@@ -554,7 +760,7 @@ code .</code></pre>
           <h3>Install permanently with VSIX</h3>
           <pre><code class="language-powershell">cd tools/vscode-tsst
 vsce package
-code --install-extension .\vscode-tsst-0.0.1.vsix</code></pre>
+code --install-extension .\vscode-tsst-0.0.1.vsix --force</code></pre>
         </section>
 
         <section class="section" id="roadmap">
@@ -566,11 +772,11 @@ code --install-extension .\vscode-tsst-0.0.1.vsix</code></pre>
           <div class="roadmap">
             <div>
               <span></span>
-              <p>Smarter VS Code autocomplete for user functions and variables.</p>
+              <p>Smarter VS Code autocomplete for installed package functions.</p>
             </div>
             <div>
               <span></span>
-              <p>Better package commands like update, remove, and list.</p>
+              <p>Better package commands like search and publish.</p>
             </div>
             <div>
               <span></span>

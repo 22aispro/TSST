@@ -48,6 +48,8 @@ const BOOLEANS = new Set([
 
 const BUILTINS = new Set([
   "len",
+  "input_str",
+  "input_int",
 ]);
 
 const MACROS = new Set([
