@@ -1,8 +1,8 @@
 use crate::token::{Token, TokenKind};
 
 pub struct Lexer {
-    input: Vec<char>,
-    pos: usize,
+    chars: Vec<char>,
+    current: usize,
     line: usize,
     column: usize,
 }
@@ -10,8 +10,8 @@ pub struct Lexer {
 impl Lexer {
     pub fn new(source: &str) -> Self {
         Self {
-            input: source.chars().collect(),
-            pos: 0,
+            chars: source.chars().collect(),
+            current: 0,
             line: 1,
             column: 1,
         }
@@ -20,176 +20,292 @@ impl Lexer {
     pub fn tokenize(&mut self) -> Result<Vec<Token>, String> {
         let mut tokens = Vec::new();
 
-        loop {
-            let token = self.next_token()?;
-            let is_eof = token.kind == TokenKind::Eof;
+        while !self.is_at_end() {
+            let char_value = self.peek();
+            let line = self.line;
+            let column = self.column;
 
-            tokens.push(token);
+            match char_value {
+                ' ' | '\r' | '\t' => {
+                    self.advance();
+                }
 
-            if is_eof {
-                break;
+                '\n' => {
+                    self.advance_newline();
+                }
+
+                '/' => {
+                    if self.peek_next() == '/' {
+                        self.skip_comment();
+                    } else {
+                        self.advance();
+                        tokens.push(Token::new(TokenKind::Slash, "/".to_string(), line, column));
+                    }
+                }
+
+                '+' => {
+                    self.advance();
+                    tokens.push(Token::new(TokenKind::Plus, "+".to_string(), line, column));
+                }
+
+                '-' => {
+                    self.advance();
+
+                    if self.match_char('>') {
+                        tokens.push(Token::new(TokenKind::Arrow, "->".to_string(), line, column));
+                    } else {
+                        tokens.push(Token::new(TokenKind::Minus, "-".to_string(), line, column));
+                    }
+                }
+
+                '*' => {
+                    self.advance();
+                    tokens.push(Token::new(TokenKind::Star, "*".to_string(), line, column));
+                }
+
+                '=' => {
+                    self.advance();
+
+                    if self.match_char('=') {
+                        tokens.push(Token::new(TokenKind::EqualEqual, "==".to_string(), line, column));
+                    } else {
+                        tokens.push(Token::new(TokenKind::Equal, "=".to_string(), line, column));
+                    }
+                }
+
+                '!' => {
+                    self.advance();
+
+                    if self.match_char('=') {
+                        tokens.push(Token::new(TokenKind::BangEqual, "!=".to_string(), line, column));
+                    } else {
+                        tokens.push(Token::new(TokenKind::Bang, "!".to_string(), line, column));
+                    }
+                }
+
+                '<' => {
+                    self.advance();
+
+                    if self.match_char('=') {
+                        tokens.push(Token::new(TokenKind::LessEqual, "<=".to_string(), line, column));
+                    } else {
+                        tokens.push(Token::new(TokenKind::Less, "<".to_string(), line, column));
+                    }
+                }
+
+                '>' => {
+                    self.advance();
+
+                    if self.match_char('=') {
+                        tokens.push(Token::new(TokenKind::GreaterEqual, ">=".to_string(), line, column));
+                    } else {
+                        tokens.push(Token::new(TokenKind::Greater, ">".to_string(), line, column));
+                    }
+                }
+
+                '&' => {
+                    self.advance();
+
+                    if self.match_char('&') {
+                        tokens.push(Token::new(TokenKind::AndAnd, "&&".to_string(), line, column));
+                    } else {
+                        return Err(format!(
+                            "line {}, column {}: Expected '&' after '&'. Use &&.",
+                            line, column
+                        ));
+                    }
+                }
+
+                '|' => {
+                    self.advance();
+
+                    if self.match_char('|') {
+                        tokens.push(Token::new(TokenKind::OrOr, "||".to_string(), line, column));
+                    } else {
+                        return Err(format!(
+                            "line {}, column {}: Expected '|' after '|'. Use ||.",
+                            line, column
+                        ));
+                    }
+                }
+
+                '(' => {
+                    self.advance();
+                    tokens.push(Token::new(TokenKind::LParen, "(".to_string(), line, column));
+                }
+
+                ')' => {
+                    self.advance();
+                    tokens.push(Token::new(TokenKind::RParen, ")".to_string(), line, column));
+                }
+
+                '{' => {
+                    self.advance();
+                    tokens.push(Token::new(TokenKind::LBrace, "{".to_string(), line, column));
+                }
+
+                '}' => {
+                    self.advance();
+                    tokens.push(Token::new(TokenKind::RBrace, "}".to_string(), line, column));
+                }
+
+                '[' => {
+                    self.advance();
+                    tokens.push(Token::new(TokenKind::LBracket, "[".to_string(), line, column));
+                }
+
+                ']' => {
+                    self.advance();
+                    tokens.push(Token::new(TokenKind::RBracket, "]".to_string(), line, column));
+                }
+
+                ',' => {
+                    self.advance();
+                    tokens.push(Token::new(TokenKind::Comma, ",".to_string(), line, column));
+                }
+
+                ':' => {
+                    self.advance();
+                    tokens.push(Token::new(TokenKind::Colon, ":".to_string(), line, column));
+                }
+
+                ';' => {
+                    self.advance();
+                    tokens.push(Token::new(TokenKind::Semicolon, ";".to_string(), line, column));
+                }
+
+                '"' => {
+                    tokens.push(self.string()?);
+                }
+
+                value if value.is_ascii_digit() => {
+                    tokens.push(self.number()?);
+                }
+
+                value if is_identifier_start(value) => {
+                    tokens.push(self.identifier());
+                }
+
+                other => {
+                    return Err(format!(
+                        "line {}, column {}: Unexpected character '{}'.",
+                        line, column, other
+                    ));
+                }
             }
         }
+
+        tokens.push(Token::new(
+            TokenKind::Eof,
+            String::new(),
+            self.line,
+            self.column,
+        ));
 
         Ok(tokens)
     }
 
-    fn next_token(&mut self) -> Result<Token, String> {
-        self.skip_whitespace_and_comments();
+    fn string(&mut self) -> Result<Token, String> {
+        let start_line = self.line;
+        let start_column = self.column;
 
-        let line = self.line;
-        let column = self.column;
+        self.advance();
 
-        let ch = match self.current() {
-            Some(ch) => ch,
-            None => return Ok(Token::new(TokenKind::Eof, line, column)),
-        };
+        let mut value = String::new();
 
-        match ch {
-            '=' => {
+        while !self.is_at_end() {
+            let char_value = self.peek();
+
+            if char_value == '"' {
                 self.advance();
 
-                if self.current() == Some('=') {
-                    self.advance();
-                    Ok(Token::new(TokenKind::EqEq, line, column))
-                } else {
-                    Ok(Token::new(TokenKind::Eq, line, column))
+                return Ok(Token::new(
+                    TokenKind::Str(value.clone()),
+                    value,
+                    start_line,
+                    start_column,
+                ));
+            }
+
+            if char_value == '\\' {
+                self.advance();
+
+                if self.is_at_end() {
+                    return Err(format!(
+                        "line {}, column {}: Unterminated escape sequence.",
+                        start_line, start_column
+                    ));
                 }
-            }
 
-            '!' => {
-                self.advance();
+                let escaped = self.peek();
 
-                if self.current() == Some('=') {
-                    self.advance();
-                    Ok(Token::new(TokenKind::BangEq, line, column))
-                } else {
-                    Ok(Token::new(TokenKind::Bang, line, column))
+                match escaped {
+                    '"' => value.push('"'),
+                    '\\' => value.push('\\'),
+                    'n' => value.push('\n'),
+                    't' => value.push('\t'),
+                    'r' => value.push('\r'),
+                    other => value.push(other),
                 }
-            }
 
-            '<' => {
                 self.advance();
-
-                if self.current() == Some('=') {
-                    self.advance();
-                    Ok(Token::new(TokenKind::LessEq, line, column))
-                } else {
-                    Ok(Token::new(TokenKind::Less, line, column))
-                }
+                continue;
             }
 
-            '>' => {
+            if char_value == '\n' {
+                value.push('\n');
+                self.advance_newline();
+            } else {
+                value.push(char_value);
                 self.advance();
-
-                if self.current() == Some('=') {
-                    self.advance();
-                    Ok(Token::new(TokenKind::GreaterEq, line, column))
-                } else {
-                    Ok(Token::new(TokenKind::Greater, line, column))
-                }
             }
-
-            '-' => {
-                self.advance();
-
-                if self.current() == Some('>') {
-                    self.advance();
-                    Ok(Token::new(TokenKind::Arrow, line, column))
-                } else {
-                    Ok(Token::new(TokenKind::Minus, line, column))
-                }
-            }
-
-            ';' => {
-                self.advance();
-                Ok(Token::new(TokenKind::Semi, line, column))
-            }
-
-            ',' => {
-                self.advance();
-                Ok(Token::new(TokenKind::Comma, line, column))
-            }
-
-            ':' => {
-                self.advance();
-                Ok(Token::new(TokenKind::Colon, line, column))
-            }
-
-            '+' => {
-                self.advance();
-                Ok(Token::new(TokenKind::Plus, line, column))
-            }
-
-            '*' => {
-                self.advance();
-                Ok(Token::new(TokenKind::Star, line, column))
-            }
-
-            '/' => {
-                self.advance();
-                Ok(Token::new(TokenKind::Slash, line, column))
-            }
-
-            '(' => {
-                self.advance();
-                Ok(Token::new(TokenKind::LParen, line, column))
-            }
-
-            ')' => {
-                self.advance();
-                Ok(Token::new(TokenKind::RParen, line, column))
-            }
-
-            '{' => {
-                self.advance();
-                Ok(Token::new(TokenKind::LBrace, line, column))
-            }
-
-            '}' => {
-                self.advance();
-                Ok(Token::new(TokenKind::RBrace, line, column))
-            }
-
-            '[' => {
-                self.advance();
-                Ok(Token::new(TokenKind::LBracket, line, column))
-            }
-
-            ']' => {
-                self.advance();
-                Ok(Token::new(TokenKind::RBracket, line, column))
-            }
-
-            '"' => self.read_string(line, column),
-
-            ch if ch.is_ascii_digit() => self.read_number(line, column),
-
-            ch if is_ident_start(ch) => Ok(self.read_identifier_or_keyword(line, column)),
-
-            _ => Err(format!(
-                "line {}, column {}: Unexpected character '{}'",
-                line, column, ch
-            )),
         }
+
+        Err(format!(
+            "line {}, column {}: Unterminated string.",
+            start_line, start_column
+        ))
     }
 
-    fn read_identifier_or_keyword(&mut self, line: usize, column: usize) -> Token {
-        let start = self.pos;
+    fn number(&mut self) -> Result<Token, String> {
+        let start_line = self.line;
+        let start_column = self.column;
+        let mut value = String::new();
 
-        while let Some(ch) = self.current() {
-            if is_ident_part(ch) {
-                self.advance();
-            } else {
-                break;
-            }
+        while !self.is_at_end() && self.peek().is_ascii_digit() {
+            value.push(self.peek());
+            self.advance();
         }
 
-        let text: String = self.input[start..self.pos].iter().collect();
+        let parsed = value.parse::<i64>().map_err(|error| {
+            format!(
+                "line {}, column {}: Invalid integer '{}': {}",
+                start_line, start_column, value, error
+            )
+        })?;
 
-        let kind = match text.as_str() {
+        Ok(Token::new(
+            TokenKind::Int(parsed),
+            value,
+            start_line,
+            start_column,
+        ))
+    }
+
+    fn identifier(&mut self) -> Token {
+        let start_line = self.line;
+        let start_column = self.column;
+        let mut value = String::new();
+
+        while !self.is_at_end() && is_identifier_part(self.peek()) {
+            value.push(self.peek());
+            self.advance();
+        }
+
+        let kind = match value.as_str() {
             "pub" => TokenKind::Pub,
             "fcn" => TokenKind::Fcn,
+            "return" => TokenKind::Return,
             "if" => TokenKind::If,
             "else" => TokenKind::Else,
             "while" => TokenKind::While,
@@ -197,148 +313,74 @@ impl Lexer {
             "in" => TokenKind::In,
             "break" => TokenKind::Break,
             "continue" => TokenKind::Continue,
-            "return" => TokenKind::Return,
+            "use" => TokenKind::Use,
+
             "true" => TokenKind::Bool(true),
             "false" => TokenKind::Bool(false),
 
-            _ if text.starts_with("cre_") => {
-                let ty = text.trim_start_matches("cre_").to_string();
-                TokenKind::CreateType(ty)
+            "cre_int" | "cre_str" | "cre_bool" | "cre_arr" | "cre_dict" => {
+                TokenKind::Type(value.clone())
             }
 
-            _ => TokenKind::Ident(text),
+            _ => TokenKind::Ident(value.clone()),
         };
 
-        Token::new(kind, line, column)
+        Token::new(kind, value, start_line, start_column)
     }
 
-    fn read_number(&mut self, line: usize, column: usize) -> Result<Token, String> {
-        let start = self.pos;
-
-        while let Some(ch) = self.current() {
-            if ch.is_ascii_digit() {
-                self.advance();
-            } else {
-                break;
-            }
-        }
-
-        let text: String = self.input[start..self.pos].iter().collect();
-
-        match text.parse::<i64>() {
-            Ok(value) => Ok(Token::new(TokenKind::Int(value), line, column)),
-            Err(_) => Err(format!(
-                "line {}, column {}: Invalid integer literal '{}'",
-                line, column, text
-            )),
+    fn skip_comment(&mut self) {
+        while !self.is_at_end() && self.peek() != '\n' {
+            self.advance();
         }
     }
 
-    fn read_string(&mut self, line: usize, column: usize) -> Result<Token, String> {
+    fn advance(&mut self) -> char {
+        let value = self.chars[self.current];
+        self.current += 1;
+        self.column += 1;
+        value
+    }
+
+    fn advance_newline(&mut self) {
+        self.current += 1;
+        self.line += 1;
+        self.column = 1;
+    }
+
+    fn match_char(&mut self, expected: char) -> bool {
+        if self.is_at_end() {
+            return false;
+        }
+
+        if self.peek() != expected {
+            return false;
+        }
+
         self.advance();
-
-        let mut value = String::new();
-
-        while let Some(ch) = self.current() {
-            match ch {
-                '"' => {
-                    self.advance();
-                    return Ok(Token::new(TokenKind::Str(value), line, column));
-                }
-
-                '\\' => {
-                    self.advance();
-
-                    let escaped = match self.current() {
-                        Some('n') => '\n',
-                        Some('t') => '\t',
-                        Some('"') => '"',
-                        Some('\\') => '\\',
-
-                        Some(other) => {
-                            return Err(format!(
-                                "line {}, column {}: Invalid escape sequence '\\{}'",
-                                self.line, self.column, other
-                            ));
-                        }
-
-                        None => {
-                            return Err(format!(
-                                "line {}, column {}: Unterminated escape sequence in string",
-                                line, column
-                            ));
-                        }
-                    };
-
-                    value.push(escaped);
-                    self.advance();
-                }
-
-                other => {
-                    value.push(other);
-                    self.advance();
-                }
-            }
-        }
-
-        Err(format!(
-            "line {}, column {}: Unterminated string literal",
-            line, column
-        ))
+        true
     }
 
-    fn skip_whitespace_and_comments(&mut self) {
-        loop {
-            while let Some(ch) = self.current() {
-                if ch.is_whitespace() {
-                    self.advance();
-                } else {
-                    break;
-                }
-            }
+    fn peek(&self) -> char {
+        self.chars[self.current]
+    }
 
-            if self.current() == Some('/') && self.peek() == Some('/') {
-                while let Some(ch) = self.current() {
-                    self.advance();
-
-                    if ch == '\n' {
-                        break;
-                    }
-                }
-
-                continue;
-            }
-
-            break;
+    fn peek_next(&self) -> char {
+        if self.current + 1 >= self.chars.len() {
+            '\0'
+        } else {
+            self.chars[self.current + 1]
         }
     }
 
-    fn current(&self) -> Option<char> {
-        self.input.get(self.pos).copied()
-    }
-
-    fn peek(&self) -> Option<char> {
-        self.input.get(self.pos + 1).copied()
-    }
-
-    fn advance(&mut self) {
-        if let Some(ch) = self.current() {
-            self.pos += 1;
-
-            if ch == '\n' {
-                self.line += 1;
-                self.column = 1;
-            } else {
-                self.column += 1;
-            }
-        }
+    fn is_at_end(&self) -> bool {
+        self.current >= self.chars.len()
     }
 }
 
-fn is_ident_start(ch: char) -> bool {
-    ch.is_ascii_alphabetic() || ch == '_'
+fn is_identifier_start(value: char) -> bool {
+    value.is_ascii_alphabetic() || value == '_'
 }
 
-fn is_ident_part(ch: char) -> bool {
-    ch.is_ascii_alphanumeric() || ch == '_'
+fn is_identifier_part(value: char) -> bool {
+    value.is_ascii_alphanumeric() || value == '_'
 }

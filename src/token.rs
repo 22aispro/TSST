@@ -1,7 +1,16 @@
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenKind {
+    Eof,
+
+    Ident(String),
+    Int(i64),
+    Str(String),
+    Bool(bool),
+    Type(String),
+
     Pub,
     Fcn,
+    Return,
     If,
     Else,
     While,
@@ -9,33 +18,27 @@ pub enum TokenKind {
     In,
     Break,
     Continue,
-    Return,
-
-    CreateType(String),
-
-    Ident(String),
-    Int(i64),
-    Str(String),
-    Bool(bool),
-
-    Eq,
-    EqEq,
-    Bang,
-    BangEq,
-    Less,
-    Greater,
-    LessEq,
-    GreaterEq,
-    Arrow,
-
-    Semi,
-    Comma,
-    Colon,
+    Use,
 
     Plus,
     Minus,
     Star,
     Slash,
+
+    Equal,
+    EqualEqual,
+    Bang,
+    BangEqual,
+
+    Less,
+    Greater,
+    LessEqual,
+    GreaterEqual,
+
+    AndAnd,
+    OrOr,
+
+    Arrow,
 
     LParen,
     RParen,
@@ -44,18 +47,26 @@ pub enum TokenKind {
     LBracket,
     RBracket,
 
-    Eof,
+    Comma,
+    Colon,
+    Semicolon,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct Token {
     pub kind: TokenKind,
+    pub lexeme: String,
     pub line: usize,
     pub column: usize,
 }
 
 impl Token {
-    pub fn new(kind: TokenKind, line: usize, column: usize) -> Self {
-        Self { kind, line, column }
+    pub fn new(kind: TokenKind, lexeme: String, line: usize, column: usize) -> Self {
+        Self {
+            kind,
+            lexeme,
+            line,
+            column,
+        }
     }
 }
