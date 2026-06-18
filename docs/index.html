@@ -3,802 +3,718 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TSST Documentation</title>
-  <link rel="stylesheet" href="styles.css" />
-  <script src="highlight.js" defer></script>
+  <title>TSST Language</title>
+  <style>
+    :root {
+      --bg: #f5f5f5;
+      --panel: #ffffff;
+      --card: #ffffff;
+      --text: #050505;
+      --muted: #444444;
+      --border: #000000;
+      --code-bg: #111111;
+      --code-text: #f5f5f5;
+      --accent: #000000;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    header {
+      border-bottom: 2px solid var(--border);
+      background: var(--panel);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    nav {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -1px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .nav-links a {
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 700;
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      background: white;
+    }
+
+    .nav-links a:hover {
+      background: black;
+      color: white;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 22px 80px;
+    }
+
+    .hero {
+      border: 2px solid var(--border);
+      background: var(--panel);
+      padding: 46px;
+      margin-bottom: 28px;
+    }
+
+    .hero h1 {
+      margin: 0 0 16px;
+      font-size: clamp(42px, 8vw, 86px);
+      line-height: 0.95;
+      letter-spacing: -4px;
+    }
+
+    .hero p {
+      font-size: 20px;
+      max-width: 760px;
+      color: var(--muted);
+      margin-bottom: 28px;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .button {
+      display: inline-block;
+      border: 2px solid var(--border);
+      background: white;
+      color: black;
+      text-decoration: none;
+      padding: 12px 18px;
+      font-weight: 900;
+    }
+
+    .button.primary {
+      background: black;
+      color: white;
+    }
+
+    .button:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 4px 4px 0 black;
+    }
+
+    section {
+      border: 2px solid var(--border);
+      background: var(--panel);
+      padding: 28px;
+      margin: 28px 0;
+    }
+
+    h2 {
+      margin-top: 0;
+      font-size: 34px;
+      letter-spacing: -1px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 10px;
+    }
+
+    h3 {
+      font-size: 22px;
+      margin-top: 26px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      border: 2px solid var(--border);
+      background: var(--card);
+      padding: 18px;
+    }
+
+    .card h3 {
+      margin-top: 0;
+      margin-bottom: 8px;
+    }
+
+    .card p {
+      margin-bottom: 0;
+      color: var(--muted);
+    }
+
+    pre {
+      background: var(--code-bg);
+      color: var(--code-text);
+      padding: 18px;
+      overflow-x: auto;
+      border: 2px solid var(--border);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    code {
+      font-family: Consolas, Monaco, monospace;
+    }
+
+    .inline-code {
+      background: #e8e8e8;
+      border: 1px solid black;
+      padding: 2px 6px;
+      font-family: Consolas, Monaco, monospace;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+
+    th, td {
+      border: 2px solid var(--border);
+      padding: 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: black;
+      color: white;
+    }
+
+    footer {
+      border-top: 2px solid var(--border);
+      background: white;
+      padding: 28px 22px;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    @media (max-width: 720px) {
+      nav {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .hero {
+        padding: 28px;
+      }
+
+      section {
+        padding: 20px;
+      }
+    }
+  </style>
 </head>
 <body>
-  <div class="app-shell">
-    <aside class="sidebar">
-      <a class="brand" href="#top">
-        <span class="brand-mark">T</span>
-        <span>
-          <strong>TSST</strong>
-          <small>Language Docs</small>
-        </span>
-      </a>
+  <header>
+    <nav>
+      <div class="logo">TSST</div>
+      <div class="nav-links">
+        <a href="#start">Start</a>
+        <a href="#language">Language</a>
+        <a href="#cli">CLI</a>
+        <a href="#gui">GUI</a>
+        <a href="#examples">Examples</a>
+      </div>
+    </nav>
+  </header>
 
-      <nav class="side-nav">
-        <p>Getting Started</p>
-        <a href="#overview">Overview</a>
-        <a href="#install">Install</a>
-        <a href="#project">Create a Project</a>
+  <main>
+    <div class="hero">
+      <h1>TSST Language</h1>
+      <p>
+        TSST is a small programming language built in Rust. It supports variables,
+        functions, arrays, dictionaries, loops, imports, compiled builds, packages,
+        and simple GUI apps styled directly from TSST code.
+      </p>
+      <div class="buttons">
+        <a class="button primary" href="#start">Get Started</a>
+        <a class="button" href="https://github.com/22aispro/TSST">GitHub</a>
+      </div>
+    </div>
 
-        <p>Language</p>
-        <a href="#variables">Variables</a>
-        <a href="#functions">Functions</a>
-        <a href="#input">Input</a>
-        <a href="#conditionals">If / Else</a>
-        <a href="#loops">Loops</a>
-        <a href="#arrays">Arrays</a>
-        <a href="#dictionaries">Dictionaries</a>
-        <a href="#imports">Imports</a>
-        <a href="#builtins">Built-ins</a>
+    <section id="start">
+      <h2>Quick Start</h2>
 
-        <p>Packages</p>
-        <a href="#packages">Package Manager</a>
-        <a href="#quartus">Quartus</a>
-        <a href="#calculator">Calculator Example</a>
-
-        <p>Tools</p>
-        <a href="#vscode">VS Code Extension</a>
-        <a href="#roadmap">Roadmap</a>
-      </nav>
-    </aside>
-
-    <div class="page">
-      <header class="topbar">
-        <div class="mobile-brand">TSST Docs</div>
-
-        <label class="search">
-          <span>⌕</span>
-          <input type="text" placeholder="Search documentation..." />
-        </label>
-
-        <div class="top-actions">
-          <a href="https://github.com/22aispro/TSST" target="_blank">GitHub</a>
-          <a class="top-button" href="#install">Get Started</a>
-        </div>
-      </header>
-
-      <main id="top">
-        <section class="hero">
-          <div class="hero-copy">
-            <div class="eyebrow">Lightweight • Aesthetically Typed • Built in Rust</div>
-            <h1>Build with TSST.</h1>
-            <p>
-              TSST is an experimental programming language with typed declarations,
-              functions, loops, arrays, dictionaries, imports, input, packages,
-              and VS Code support.
-            </p>
-
-            <div class="hero-actions">
-              <a class="button primary" href="#install">Start Building</a>
-              <a class="button ghost" href="#quartus">Explore Quartus</a>
-            </div>
-          </div>
-
-          <div class="hero-card">
-            <div class="window-bar">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-            <pre><code class="language-tsst">use "quartus:math";
-use "quartus:ui";
-
-pub fcn main () {
-    q_ui_app_start("Calculator");
-
-    cre_int a = input_int("First number: ");
-    cre_str op = input_str("Operation: ");
-    cre_int b = input_int("Second number: ");
-
-    if op == "+" {
-        q_ui_number("Result", a + b);
-    }
-
-    if op == "*" {
-        q_ui_number("Result", a * b);
-    }
-
-    q_ui_success("Done");
-    q_ui_app_end();
-}</code></pre>
-          </div>
-        </section>
-
-        <section class="section" id="overview">
-          <div class="section-heading">
-            <p class="kicker">Overview</p>
-            <h2>What is TSST?</h2>
-          </div>
-
-          <p class="lead">
-            TSST is a small language focused on readable syntax, simple types,
-            packages, and a clean development experience. It runs through a Rust-built CLI
-            and includes a VS Code extension for syntax coloring and autocomplete.
-          </p>
-
-          <div class="feature-grid">
-            <article class="feature-card">
-              <div class="icon">⌘</div>
-              <h3>Clean Syntax</h3>
-              <p>Typed declarations like <code>cre_int</code>, <code>cre_str</code>, and <code>cre_dict</code>.</p>
-            </article>
-
-            <article class="feature-card">
-              <div class="icon">↳</div>
-              <h3>Functions</h3>
-              <p>Use parameters, return values, and arrow return types like <code>-> int</code>.</p>
-            </article>
-
-            <article class="feature-card">
-              <div class="icon">▦</div>
-              <h3>Data Structures</h3>
-              <p>Arrays, dictionaries, indexing, mutation macros, and <code>len()</code>.</p>
-            </article>
-
-            <article class="feature-card">
-              <div class="icon">⌁</div>
-              <h3>Interactive Input</h3>
-              <p>Read user input with <code>input_str()</code> and <code>input_int()</code>.</p>
-            </article>
-
-            <article class="feature-card">
-              <div class="icon">⬡</div>
-              <h3>Packages</h3>
-              <p>Install GitHub packages with <code>tsst install</code> and import with <code>use "quartus:math";</code>.</p>
-            </article>
-
-            <article class="feature-card">
-              <div class="icon">✦</div>
-              <h3>Editor Support</h3>
-              <p>VS Code language recognition, syntax highlighting, autocomplete, and snippets.</p>
-            </article>
-          </div>
-        </section>
-
-        <section class="section" id="install">
-          <div class="section-heading">
-            <p class="kicker">Install</p>
-            <h2>Install for development</h2>
-          </div>
-
-          <div class="steps">
-            <article class="step">
-              <span>01</span>
-              <div>
-                <h3>Clone the repo</h3>
-                <pre><code class="language-powershell">git clone https://github.com/22aispro/TSST.git
-cd TSST</code></pre>
-              </div>
-            </article>
-
-            <article class="step">
-              <span>02</span>
-              <div>
-                <h3>Build the CLI</h3>
-                <pre><code class="language-powershell">cargo build --release</code></pre>
-              </div>
-            </article>
-
-            <article class="step">
-              <span>03</span>
-              <div>
-                <h3>Run a TSST file</h3>
-                <pre><code class="language-powershell">.\target\release\tsst.exe path/to/main.tsst</code></pre>
-              </div>
-            </article>
-          </div>
-
-          <div class="callout">
-            <strong>Tip:</strong> Add <code>target/release</code> to your Windows PATH so you can run
-            <code>tsst main.tsst</code> from any TSST project folder.
-          </div>
-        </section>
-
-        <section class="section" id="project">
-          <div class="section-heading">
-            <p class="kicker">Projects</p>
-            <h2>Create a TSST project</h2>
-          </div>
-
-          <p class="lead">
-            Create a project anywhere with <code>tsst init</code>.
-          </p>
-
-          <div class="two-column">
-            <div>
-              <h3>Create an app</h3>
-              <pre><code class="language-powershell">cd C:\Users\YourName\Desktop
-tsst init MyApp
+      <h3>Create a workspace</h3>
+      <pre><code>tsst init MyApp
 cd MyApp</code></pre>
-            </div>
 
-            <div>
-              <h3>Run it</h3>
-              <pre><code class="language-powershell">tsst main.tsst</code></pre>
-            </div>
-          </div>
+      <h3>Run with interpreter</h3>
+      <pre><code>tsst run main.tsst</code></pre>
 
-          <h3>Generated structure</h3>
-          <pre><code class="language-text">MyApp/
-  main.tsst
-  tsst.json
-  packages/</code></pre>
-        </section>
+      <h3>Build to executable</h3>
+      <pre><code>tsst build main.tsst
+.\build\release\main.exe</code></pre>
 
-        <section class="section" id="variables">
-          <div class="section-heading">
-            <p class="kicker">Syntax</p>
-            <h2>Variables</h2>
-          </div>
+      <p>
+        GUI apps currently run through compiled mode.
+      </p>
+    </section>
 
-          <pre><code class="language-tsst">cre_int age = 37;
-cre_str name = "John Doe";
-cre_bool cool = true;
+    <section id="language">
+      <h2>Language Basics</h2>
 
-cre_arr nums = [1, 2, 3];
+      <div class="grid">
+        <div class="card">
+          <h3>Variables</h3>
+          <p>Use <span class="inline-code">cre_</span> types like <span class="inline-code">cre_int</span>, <span class="inline-code">cre_str</span>, and <span class="inline-code">cre_bool</span>.</p>
+        </div>
 
-cre_dict user = {
-    "name": "John Doe",
-    "age": 37,
-};</code></pre>
-        </section>
+        <div class="card">
+          <h3>Functions</h3>
+          <p>Define reusable logic with <span class="inline-code">fcn</span>. Use <span class="inline-code">pub fcn main ()</span> as the entry point.</p>
+        </div>
 
-        <section class="section" id="functions">
-          <div class="section-heading">
-            <p class="kicker">Syntax</p>
-            <h2>Functions</h2>
-          </div>
+        <div class="card">
+          <h3>Collections</h3>
+          <p>Use arrays and dictionaries with indexing, <span class="inline-code">push!</span>, and <span class="inline-code">set!</span>.</p>
+        </div>
 
-          <pre><code class="language-tsst">fcn add (cre_int a, cre_int b) -> int {
+        <div class="card">
+          <h3>Compiled Apps</h3>
+          <p><span class="inline-code">tsst build</span> compiles TSST into Rust and creates a release executable.</p>
+        </div>
+      </div>
+
+      <h3>Hello World</h3>
+      <pre><code>pub fcn main () {
+    cons!("Hello from TSST");
+}</code></pre>
+
+      <h3>Variables</h3>
+      <pre><code>pub fcn main () {
+    cre_int age = 15;
+    cre_str name = "TSST";
+    cre_bool ready = true;
+
+    cre_arr nums = [1, 2, 3];
+    cre_dict user = {
+        "name": "Re",
+        "level": 10
+    };
+
+    cons!(name);
+}</code></pre>
+
+      <h3>Functions</h3>
+      <pre><code>fcn add (cre_int a, cre_int b) -> int {
     return a + b;
 }
 
 pub fcn main () {
-    cre_int result = add(5, 10);
+    cre_int result = add(5, 7);
     cons!(result);
 }</code></pre>
-        </section>
 
-        <section class="section" id="input">
-          <div class="section-heading">
-            <p class="kicker">Input</p>
-            <h2>Read user input</h2>
-          </div>
+      <h3>If / Else</h3>
+      <pre><code>pub fcn main () {
+    cre_int score = 90;
 
-          <p class="lead">
-            TSST supports interactive terminal input using built-in functions.
-          </p>
-
-          <div class="api-list">
-            <article>
-              <h3><code>input_str(prompt)</code></h3>
-              <p>Prints a prompt and returns the user's input as a string.</p>
-            </article>
-
-            <article>
-              <h3><code>input_int(prompt)</code></h3>
-              <p>Prints a prompt and returns the user's input as an integer.</p>
-            </article>
-          </div>
-
-          <h3>Example</h3>
-
-          <pre><code class="language-tsst">pub fcn main () {
-    cre_str name = input_str("Name: ");
-    cre_int age = input_int("Age: ");
-
-    cons!("Hello " + name);
-    cons!("Age: " + age);
-}</code></pre>
-        </section>
-
-        <section class="section" id="conditionals">
-          <div class="section-heading">
-            <p class="kicker">Syntax</p>
-            <h2>If / Else</h2>
-          </div>
-
-          <pre><code class="language-tsst">pub fcn main () {
-    cre_int age = 37;
-
-    if age > 18 {
-        cons!("adult");
+    if score >= 80 {
+        cons!("Good");
     } else {
-        cons!("minor");
+        cons!("Try again");
     }
 }</code></pre>
-        </section>
 
-        <section class="section" id="loops">
-          <div class="section-heading">
-            <p class="kicker">Syntax</p>
-            <h2>Loops</h2>
-          </div>
-
-          <div class="two-column">
-            <div>
-              <h3>Classic for loop</h3>
-              <pre><code class="language-tsst">for (cre_int i = 0; i < 5; i = i + 1) {
-    cons!(i);
-}</code></pre>
-            </div>
-
-            <div>
-              <h3>For-each loop</h3>
-              <pre><code class="language-tsst">cre_arr nums = [10, 20, 30];
-
-for (cre_int n in nums) {
-    cons!(n);
-}</code></pre>
-            </div>
-          </div>
-
-          <h3>Break and continue</h3>
-          <pre><code class="language-tsst">for (cre_int i = 0; i < 10; i = i + 1) {
-    if i == 3 {
-        continue;
+      <h3>Loops</h3>
+      <pre><code>pub fcn main () {
+    for cre_int i = 0; i < 5; i = i + 1 {
+        cons!(i);
     }
 
-    if i == 7 {
-        break;
+    cre_int x = 0;
+
+    while x < 3 {
+        cons!(x);
+        x = x + 1;
     }
-
-    cons!(i);
 }</code></pre>
-        </section>
 
-        <section class="section" id="arrays">
-          <div class="section-heading">
-            <p class="kicker">Data</p>
-            <h2>Arrays</h2>
-          </div>
+      <h3>Arrays and Dictionaries</h3>
+      <pre><code>pub fcn main () {
+    cre_arr nums = [1, 2, 3];
+    push!(nums, 4);
 
-          <pre><code class="language-tsst">pub fcn main () {
-    cre_arr nums = [10, 20, 30];
-
-    cons!(nums[0]);
-    cons!(len(nums));
-
-    push!(nums, 40);
-
-    cons!(nums);
-}</code></pre>
-        </section>
-
-        <section class="section" id="dictionaries">
-          <div class="section-heading">
-            <p class="kicker">Data</p>
-            <h2>Dictionaries</h2>
-          </div>
-
-          <pre><code class="language-tsst">pub fcn main () {
     cre_dict user = {
-        "name": "John Doe",
-        "age": 37,
+        "name": "Re"
     };
 
+    set!(user, "lang", "TSST");
+
+    cons!(nums);
     cons!(user["name"]);
-
-    set!(user, "admin", true);
-
-    for (cre_str key in user) {
-        cons!(key);
-        cons!(user[key]);
-    }
 }</code></pre>
-        </section>
+    </section>
 
-        <section class="section" id="imports">
-          <div class="section-heading">
-            <p class="kicker">Files</p>
-            <h2>Imports</h2>
-          </div>
+    <section>
+      <h2>Built-ins</h2>
 
-          <p class="lead">
-            Relative imports load another <code>.tsst</code> file from your project.
-          </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Built-in</th>
+            <th>Use</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>cons!(value)</code></td>
+            <td>Print a value.</td>
+          </tr>
+          <tr>
+            <td><code>len(value)</code></td>
+            <td>Get string, array, or dictionary length.</td>
+          </tr>
+          <tr>
+            <td><code>input_str(prompt)</code></td>
+            <td>Read string input.</td>
+          </tr>
+          <tr>
+            <td><code>input_int(prompt)</code></td>
+            <td>Read integer input.</td>
+          </tr>
+          <tr>
+            <td><code>lower(str)</code></td>
+            <td>Lowercase a string.</td>
+          </tr>
+          <tr>
+            <td><code>upper(str)</code></td>
+            <td>Uppercase a string.</td>
+          </tr>
+          <tr>
+            <td><code>trim(str)</code></td>
+            <td>Trim whitespace.</td>
+          </tr>
+          <tr>
+            <td><code>contains(str, needle)</code></td>
+            <td>Check whether a string contains another string.</td>
+          </tr>
+        </tbody>
+      </table>
 
-          <pre><code class="language-tsst">use "math.tsst";
-
-pub fcn main () {
-    cre_int x = add(5, 10);
-    cons!("x: " + x);
+      <pre><code>pub fcn main () {
+    cons!(len("hello"));
+    cons!(upper("tsst"));
+    cons!(contains("hello", "ell"));
 }</code></pre>
+    </section>
 
-          <h3>Package imports</h3>
-          <p class="lead">
-            Package imports load files from the <code>packages/</code> folder.
-          </p>
+    <section id="cli">
+      <h2>CLI</h2>
 
-          <pre><code class="language-tsst">use "quartus:math";
-use "quartus:ui";
+      <table>
+        <thead>
+          <tr>
+            <th>Command</th>
+            <th>What it does</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>tsst init MyApp</code></td>
+            <td>Create a new workspace.</td>
+          </tr>
+          <tr>
+            <td><code>tsst run main.tsst</code></td>
+            <td>Run a TSST file with the interpreter.</td>
+          </tr>
+          <tr>
+            <td><code>tsst main.tsst</code></td>
+            <td>Shortcut for running a TSST file.</td>
+          </tr>
+          <tr>
+            <td><code>tsst build main.tsst</code></td>
+            <td>Build TSST into an executable.</td>
+          </tr>
+          <tr>
+            <td><code>tsst install</code></td>
+            <td>Install packages.</td>
+          </tr>
+          <tr>
+            <td><code>tsst list</code></td>
+            <td>List packages.</td>
+          </tr>
+          <tr>
+            <td><code>tsst remove &lt;package&gt;</code></td>
+            <td>Remove a package.</td>
+          </tr>
+          <tr>
+            <td><code>tsst update</code></td>
+            <td>Update packages.</td>
+          </tr>
+          <tr>
+            <td><code>tsst help</code></td>
+            <td>Show help.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
 
-pub fcn main () {
-    q_ui_success("Loaded package");
-}</code></pre>
-        </section>
+    <section id="gui">
+      <h2>GUI Apps</h2>
 
-        <section class="section" id="builtins">
-          <div class="section-heading">
-            <p class="kicker">Built-ins</p>
-            <h2>Built-ins and macros</h2>
-          </div>
+      <p>
+        TSST can build simple GUI apps. GUI apps currently require compiled mode.
+        The style is written in TSST using theme and layout functions.
+      </p>
 
-          <div class="api-list">
-            <article>
-              <h3><code>cons!(value)</code></h3>
-              <p>Prints a value to the console.</p>
-            </article>
+      <h3>Basic GUI</h3>
+      <pre><code>pub fcn main () {
+    gui_window("My App", 600, 500);
 
-            <article>
-              <h3><code>len(value)</code></h3>
-              <p>Returns the length of a string, array, or dictionary.</p>
-            </article>
+    gui_theme_mode("light");
 
-            <article>
-              <h3><code>input_str(prompt)</code></h3>
-              <p>Reads terminal input as a string.</p>
-            </article>
+    gui_theme_bg(245, 245, 245);
+    gui_theme_panel(255, 255, 255);
+    gui_theme_card(255, 255, 255);
+    gui_theme_button(255, 255, 255);
+    gui_theme_button_alt(255, 255, 255);
+    gui_theme_accent(0, 0, 0);
+    gui_theme_text(0, 0, 0);
+    gui_theme_muted(45, 45, 45);
+    gui_theme_border(0, 0, 0);
 
-            <article>
-              <h3><code>input_int(prompt)</code></h3>
-              <p>Reads terminal input as an integer.</p>
-            </article>
+    gui_style_width(420);
+    gui_style_title_size(28);
+    gui_style_text_size(16);
+    gui_style_button_height(44);
+    gui_style_spacing(10);
 
-            <article>
-              <h3><code>push!(array, value)</code></h3>
-              <p>Adds a value to an array.</p>
-            </article>
+    gui_title("Hello GUI");
+    gui_text("This app is styled from TSST.");
 
-            <article>
-              <h3><code>set!(dict, key, value)</code></h3>
-              <p>Sets a dictionary key to a value.</p>
-            </article>
-          </div>
-        </section>
-
-        <section class="section" id="packages">
-          <div class="section-heading">
-            <p class="kicker">Packages</p>
-            <h2>Install packages from GitHub</h2>
-          </div>
-
-          <p class="lead">
-            TSST uses a <code>tsst.json</code> file to install dependencies.
-            Packages are cloned into your local <code>packages/</code> folder.
-          </p>
-
-          <h3>tsst.json</h3>
-
-          <pre><code class="language-json">{
-  "name": "MyApp",
-  "version": "0.1.0",
-  "dependencies": {
-    "quartus": "github:22aispro/Quartus"
-  }
-}</code></pre>
-
-          <h3>Commands</h3>
-
-          <div class="api-list">
-            <article>
-              <h3><code>tsst install</code></h3>
-              <p>Installs dependencies from <code>tsst.json</code>.</p>
-            </article>
-
-            <article>
-              <h3><code>tsst list</code></h3>
-              <p>Lists installed packages in the <code>packages/</code> folder.</p>
-            </article>
-
-            <article>
-              <h3><code>tsst remove &lt;package&gt;</code></h3>
-              <p>Removes an installed package.</p>
-            </article>
-
-            <article>
-              <h3><code>tsst update</code></h3>
-              <p>Deletes installed packages and reinstalls everything from <code>tsst.json</code>.</p>
-            </article>
-          </div>
-
-          <h3>Install and use</h3>
-
-          <pre><code class="language-powershell">tsst install
-tsst list</code></pre>
-
-          <pre><code class="language-text">MyApp/
-  packages/
-    quartus/
-      math.tsst
-      text.tsst
-      logic.tsst
-      ui.tsst</code></pre>
-
-          <pre><code class="language-tsst">use "quartus:math";
-use "quartus:ui";
-
-pub fcn main () {
-    q_ui_number("Square", q_square(9));
-}</code></pre>
-        </section>
-
-        <section class="section" id="quartus">
-          <div class="section-heading">
-            <p class="kicker">General Purpose Library</p>
-            <h2>Quartus</h2>
-          </div>
-
-          <p class="lead">
-            <strong>Quartus</strong> is a general-purpose TSST library.
-            It includes helpers for math, text, logic, and console UI.
-          </p>
-
-          <h3>Install Quartus</h3>
-
-          <pre><code class="language-json">{
-  "name": "MyApp",
-  "version": "0.1.0",
-  "dependencies": {
-    "quartus": "github:22aispro/Quartus"
-  }
+    gui_show();
 }</code></pre>
 
-          <pre><code class="language-powershell">tsst update</code></pre>
+      <h3>GUI Theme Functions</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Function</th>
+            <th>What it changes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>gui_theme_mode("light")</code></td>
+            <td>Use light mode.</td>
+          </tr>
+          <tr>
+            <td><code>gui_theme_mode("dark")</code></td>
+            <td>Use dark mode.</td>
+          </tr>
+          <tr>
+            <td><code>gui_theme_bg(r, g, b)</code></td>
+            <td>Window background color.</td>
+          </tr>
+          <tr>
+            <td><code>gui_theme_panel(r, g, b)</code></td>
+            <td>Main panel color.</td>
+          </tr>
+          <tr>
+            <td><code>gui_theme_card(r, g, b)</code></td>
+            <td>Card/stat background color.</td>
+          </tr>
+          <tr>
+            <td><code>gui_theme_button(r, g, b)</code></td>
+            <td>Normal button color.</td>
+          </tr>
+          <tr>
+            <td><code>gui_theme_button_alt(r, g, b)</code></td>
+            <td>Alternate/action button color.</td>
+          </tr>
+          <tr>
+            <td><code>gui_theme_accent(r, g, b)</code></td>
+            <td>Accent value color.</td>
+          </tr>
+          <tr>
+            <td><code>gui_theme_text(r, g, b)</code></td>
+            <td>Main text color.</td>
+          </tr>
+          <tr>
+            <td><code>gui_theme_muted(r, g, b)</code></td>
+            <td>Muted text color.</td>
+          </tr>
+          <tr>
+            <td><code>gui_theme_border(r, g, b)</code></td>
+            <td>Border color.</td>
+          </tr>
+        </tbody>
+      </table>
 
-          <h3>Import modules</h3>
+      <h3>GUI Style Functions</h3>
+      <pre><code>gui_style_width(420);
+gui_style_title_size(28);
+gui_style_text_size(16);
+gui_style_button_height(44);
+gui_style_spacing(10);</code></pre>
 
-          <pre><code class="language-tsst">use "quartus:math";
-use "quartus:text";
-use "quartus:logic";
-use "quartus:ui";</code></pre>
+      <h3>GUI Layout Functions</h3>
+      <pre><code>gui_window("Title", 600, 500);
+gui_title("Title Text");
+gui_text("Normal text");
+gui_button("Button");
+gui_space();
+gui_show();</code></pre>
 
-          <h3>Math</h3>
+      <h3>GUI State Functions</h3>
+      <pre><code>gui_var("money", 100);
+gui_var("supply", 0);
 
-          <div class="api-list">
-            <article><h3><code>q_double(n)</code></h3><p>Returns <code>n + n</code>.</p></article>
-            <article><h3><code>q_triple(n)</code></h3><p>Returns <code>n + n + n</code>.</p></article>
-            <article><h3><code>q_square(n)</code></h3><p>Returns <code>n * n</code>.</p></article>
-            <article><h3><code>q_cube(n)</code></h3><p>Returns <code>n * n * n</code>.</p></article>
-            <article><h3><code>q_abs(n)</code></h3><p>Returns the absolute value.</p></article>
-            <article><h3><code>q_min(a, b)</code></h3><p>Returns the smaller number.</p></article>
-            <article><h3><code>q_max(a, b)</code></h3><p>Returns the larger number.</p></article>
-            <article><h3><code>q_clamp(value, min, max)</code></h3><p>Keeps a number inside a range.</p></article>
-            <article><h3><code>q_is_even(n)</code></h3><p>Returns true when a number is even.</p></article>
-            <article><h3><code>q_is_odd(n)</code></h3><p>Returns true when a number is odd.</p></article>
-          </div>
+gui_stat("Money", "money");
+gui_stat("Supply", "supply");
 
-          <h3>Text</h3>
+gui_button_math("Add 5", "money", "+", 5);
+gui_button_math("Subtract 5", "money", "-", 5);
+gui_button_math("Double", "money", "*", 2);
+gui_button_math("Reset", "money", "set", 100);
 
-          <div class="api-list">
-            <article><h3><code>q_repeat(value, count)</code></h3><p>Repeats text.</p></article>
-            <article><h3><code>q_quote(value)</code></h3><p>Wraps text in quotes.</p></article>
-            <article><h3><code>q_parens(value)</code></h3><p>Wraps text in parentheses.</p></article>
-            <article><h3><code>q_brackets(value)</code></h3><p>Wraps text in brackets.</p></article>
-            <article><h3><code>q_braces(value)</code></h3><p>Wraps text in braces.</p></article>
-          </div>
+gui_button_transfer("Buy 1 Supply", "money", 10, "supply", 1);
+gui_button_transfer("Sell 1 Supply", "supply", 1, "money", 15);</code></pre>
+    </section>
 
-          <h3>Logic</h3>
+    <section id="examples">
+      <h2>Full GUI Example</h2>
 
-          <div class="api-list">
-            <article><h3><code>q_not(value)</code></h3><p>Returns the opposite boolean.</p></article>
-            <article><h3><code>q_and(a, b)</code></h3><p>Boolean AND helper.</p></article>
-            <article><h3><code>q_or(a, b)</code></h3><p>Boolean OR helper.</p></article>
-            <article><h3><code>q_yes_no(value)</code></h3><p>Converts true/false into yes/no.</p></article>
-            <article><h3><code>q_enabled_disabled(value)</code></h3><p>Converts true/false into enabled/disabled.</p></article>
-          </div>
+      <pre><code>pub fcn main () {
+    gui_window("Supply Hustle", 620, 700);
 
-          <h3>UI</h3>
+    gui_theme_mode("light");
 
-          <div class="api-list">
-            <article><h3><code>q_ui_app_start(app_name)</code></h3><p>Prints an app banner and start message.</p></article>
-            <article><h3><code>q_ui_app_end()</code></h3><p>Prints an ending message.</p></article>
-            <article><h3><code>q_ui_title(text)</code></h3><p>Prints a styled title.</p></article>
-            <article><h3><code>q_ui_card(title, body)</code></h3><p>Prints a console card.</p></article>
-            <article><h3><code>q_ui_success(text)</code></h3><p>Prints a success message.</p></article>
-            <article><h3><code>q_ui_error(text)</code></h3><p>Prints an error message.</p></article>
-            <article><h3><code>q_ui_warning(text)</code></h3><p>Prints a warning message.</p></article>
-            <article><h3><code>q_ui_info(text)</code></h3><p>Prints an info message.</p></article>
-            <article><h3><code>q_ui_progress(current, total)</code></h3><p>Prints a progress bar.</p></article>
-            <article><h3><code>q_ui_checkbox(text, checked)</code></h3><p>Prints a checkbox.</p></article>
-          </div>
-        </section>
+    gui_theme_bg(245, 245, 245);
+    gui_theme_panel(255, 255, 255);
+    gui_theme_card(255, 255, 255);
 
-        <section class="section" id="calculator">
-          <div class="section-heading">
-            <p class="kicker">Example App</p>
-            <h2>Interactive calculator with Quartus</h2>
-          </div>
+    gui_theme_button(255, 255, 255);
+    gui_theme_button_alt(255, 255, 255);
 
-          <p class="lead">
-            This example reads two numbers and an operation from the terminal,
-            then displays the result using Quartus UI.
-          </p>
+    gui_theme_accent(0, 0, 0);
+    gui_theme_text(0, 0, 0);
+    gui_theme_muted(45, 45, 45);
+    gui_theme_border(0, 0, 0);
 
-          <pre><code class="language-tsst">use "quartus:math";
-use "quartus:ui";
+    gui_style_width(420);
+    gui_style_title_size(28);
+    gui_style_text_size(16);
+    gui_style_button_height(44);
+    gui_style_spacing(10);
 
-fcn calculate (cre_int a, cre_int b, cre_str operation) -> int {
-    if operation == "+" {
-        return a + b;
-    }
+    gui_title("Supply Hustle");
+    gui_text("Buy supply. Sell supply. Make money.");
+    gui_space();
 
-    if operation == "add" {
-        return a + b;
-    }
+    gui_var("money", 100);
+    gui_var("supply", 0);
 
-    if operation == "-" {
-        return a - b;
-    }
+    gui_stat("Money", "money");
+    gui_stat("Supply", "supply");
 
-    if operation == "subtract" {
-        return a - b;
-    }
+    gui_space();
 
-    if operation == "*" {
-        return a * b;
-    }
+    gui_title("Market");
+    gui_text("Buy one supply for 10 money.");
+    gui_text("Sell one supply for 15 money.");
+    gui_space();
 
-    if operation == "multiply" {
-        return a * b;
-    }
+    gui_button_transfer("Buy 1 Supply", "money", 10, "supply", 1);
+    gui_button_transfer("Buy 5 Supply", "money", 50, "supply", 5);
 
-    if operation == "/" {
-        return a / b;
-    }
+    gui_button_transfer("Sell 1 Supply", "supply", 1, "money", 15);
+    gui_button_transfer("Sell 5 Supply", "supply", 5, "money", 75);
 
-    if operation == "divide" {
-        return a / b;
-    }
+    gui_space();
 
-    return 0;
-}
+    gui_title("Goal");
+    gui_text("Reach 250 money to win.");
 
-fcn is_valid_operation (cre_str operation) -> bool {
-    if operation == "+" {
-        return true;
-    }
-
-    if operation == "add" {
-        return true;
-    }
-
-    if operation == "-" {
-        return true;
-    }
-
-    if operation == "subtract" {
-        return true;
-    }
-
-    if operation == "*" {
-        return true;
-    }
-
-    if operation == "multiply" {
-        return true;
-    }
-
-    if operation == "/" {
-        return true;
-    }
-
-    if operation == "divide" {
-        return true;
-    }
-
-    return false;
-}
-
-pub fcn main () {
-    q_ui_app_start("Interactive Quartus Calculator");
-
-    q_ui_title("Choose Operation");
-    q_ui_text("+ or add");
-    q_ui_text("- or subtract");
-    q_ui_text("* or multiply");
-    q_ui_text("/ or divide");
-
-    q_ui_space();
-
-    cre_int a = input_int("Enter first number: ");
-    cre_str operation = input_str("Enter operation: ");
-    cre_int b = input_int("Enter second number: ");
-
-    q_ui_space();
-
-    if is_valid_operation(operation) {
-        q_ui_title("Calculator Result");
-
-        q_ui_number("First number", a);
-        q_ui_number("Second number", b);
-        q_ui_text("Operation: " + operation);
-
-        q_ui_space();
-
-        q_ui_number("Result", calculate(a, b, operation));
-
-        q_ui_space();
-
-        q_ui_title("Quartus Extras");
-        q_ui_number("Max", q_max(a, b));
-        q_ui_number("Min", q_min(a, b));
-        q_ui_number("A squared", q_square(a));
-        q_ui_number("B squared", q_square(b));
-    } else {
-        q_ui_error("Invalid operation");
-        q_ui_text("Try +, -, *, /, add, subtract, multiply, or divide.");
-    }
-
-    q_ui_app_end();
+    gui_show();
 }</code></pre>
-        </section>
+    </section>
 
-        <section class="section" id="vscode">
-          <div class="section-heading">
-            <p class="kicker">Editor</p>
-            <h2>VS Code extension</h2>
-          </div>
+    <section>
+      <h2>Current Architecture</h2>
 
-          <p class="lead">
-            TSST includes a VS Code extension for syntax coloring,
-            snippets, autocomplete, and <code>.tsst</code> file recognition.
-          </p>
+      <pre><code>compiler.rs
+  compiles TSST AST into Rust
 
-          <h3>Development mode</h3>
-          <pre><code class="language-powershell">cd tools/vscode-tsst
-code .</code></pre>
+generated_runtime.rs
+  provides generic runtime and GUI engine
 
-          <p>
-            Press <strong>F5</strong> in VS Code to open the Extension Development Host.
-          </p>
+main.tsst
+  controls app logic, layout, and visual style</code></pre>
 
-          <h3>Install permanently with VSIX</h3>
-          <pre><code class="language-powershell">cd tools/vscode-tsst
-vsce package
-code --install-extension .\vscode-tsst-0.0.1.vsix --force</code></pre>
-        </section>
+      <p>
+        The current GUI engine is generic. App-specific logic should be written in TSST.
+      </p>
+    </section>
 
-        <section class="section" id="roadmap">
-          <div class="section-heading">
-            <p class="kicker">Roadmap</p>
-            <h2>What’s next?</h2>
-          </div>
+    <section>
+      <h2>Roadmap</h2>
 
-          <div class="roadmap">
-            <div>
-              <span></span>
-              <p>Smarter VS Code autocomplete for installed package functions.</p>
-            </div>
-            <div>
-              <span></span>
-              <p>Better package commands like search and publish.</p>
-            </div>
-            <div>
-              <span></span>
-              <p>Better typechecker support for arrays and dictionaries.</p>
-            </div>
-            <div>
-              <span></span>
-              <p>Create official releases for the TSST CLI.</p>
-            </div>
-            <div>
-              <span></span>
-              <p>Publish the VS Code extension later.</p>
-            </div>
-          </div>
-        </section>
-      </main>
+      <div class="grid">
+        <div class="card">
+          <h3>Runtime Crate</h3>
+          <p>Move the generated runtime string into a real reusable Rust crate.</p>
+        </div>
 
-      <footer class="footer">
-        <p>TSST is experimental, built for learning, language design, and fun.</p>
-        <a href="https://github.com/22aispro/TSST" target="_blank">github.com/22aispro/TSST</a>
-      </footer>
-    </div>
-  </div>
+        <div class="card">
+          <h3>GUI Callbacks</h3>
+          <p>Allow TSST functions to run when GUI buttons are clicked.</p>
+        </div>
+
+        <div class="card">
+          <h3>File APIs</h3>
+          <p>Add workspace file and folder functions.</p>
+        </div>
+
+        <div class="card">
+          <h3>Audio APIs</h3>
+          <p>Add generic audio features without per-app Rust changes.</p>
+        </div>
+
+        <div class="card">
+          <h3>Packages</h3>
+          <p>Improve package installation and package imports.</p>
+        </div>
+
+        <div class="card">
+          <h3>Better Docs</h3>
+          <p>More examples, tutorials, and standard library pages.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    TSST Language — built in Rust.
+  </footer>
 </body>
 </html>
