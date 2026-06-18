@@ -1,0 +1,272 @@
+[
+  {
+    "label": "pub",
+    "kind": "keyword",
+    "detail": "public function keyword",
+    "insertText": "pub"
+  },
+  {
+    "label": "fcn",
+    "kind": "keyword",
+    "detail": "function keyword",
+    "insertText": "fcn"
+  },
+  {
+    "label": "return",
+    "kind": "keyword",
+    "detail": "return from function",
+    "insertText": "return"
+  },
+  {
+    "label": "if",
+    "kind": "keyword",
+    "detail": "if statement",
+    "insertText": "if"
+  },
+  {
+    "label": "else",
+    "kind": "keyword",
+    "detail": "else statement",
+    "insertText": "else"
+  },
+  {
+    "label": "while",
+    "kind": "keyword",
+    "detail": "while loop",
+    "insertText": "while"
+  },
+  {
+    "label": "for",
+    "kind": "keyword",
+    "detail": "for loop",
+    "insertText": "for"
+  },
+  {
+    "label": "in",
+    "kind": "keyword",
+    "detail": "for-each keyword",
+    "insertText": "in"
+  },
+  {
+    "label": "break",
+    "kind": "keyword",
+    "detail": "break out of loop",
+    "insertText": "break"
+  },
+  {
+    "label": "continue",
+    "kind": "keyword",
+    "detail": "continue loop",
+    "insertText": "continue"
+  },
+  {
+    "label": "use",
+    "kind": "keyword",
+    "detail": "import another TSST file or package",
+    "insertText": "use"
+  },
+  {
+    "label": "cre_int",
+    "kind": "keyword",
+    "detail": "create int variable",
+    "insertText": "cre_int"
+  },
+  {
+    "label": "cre_str",
+    "kind": "keyword",
+    "detail": "create string variable",
+    "insertText": "cre_str"
+  },
+  {
+    "label": "cre_bool",
+    "kind": "keyword",
+    "detail": "create bool variable",
+    "insertText": "cre_bool"
+  },
+  {
+    "label": "cre_arr",
+    "kind": "keyword",
+    "detail": "create array variable",
+    "insertText": "cre_arr"
+  },
+  {
+    "label": "cre_dict",
+    "kind": "keyword",
+    "detail": "create dictionary variable",
+    "insertText": "cre_dict"
+  },
+  {
+    "label": "true",
+    "kind": "value",
+    "detail": "boolean true",
+    "insertText": "true"
+  },
+  {
+    "label": "false",
+    "kind": "value",
+    "detail": "boolean false",
+    "insertText": "false"
+  },
+  {
+    "label": "&&",
+    "kind": "operator",
+    "detail": "logical and",
+    "insertText": "&&"
+  },
+  {
+    "label": "||",
+    "kind": "operator",
+    "detail": "logical or",
+    "insertText": "||"
+  },
+  {
+    "label": "!",
+    "kind": "operator",
+    "detail": "logical not",
+    "insertText": "!"
+  },
+  {
+    "label": "len",
+    "kind": "function",
+    "detail": "get length of string, array, or dictionary",
+    "insertText": "len(${1:value})"
+  },
+  {
+    "label": "input_str",
+    "kind": "function",
+    "detail": "read terminal input as str",
+    "insertText": "input_str(${1:\"Prompt: \"})"
+  },
+  {
+    "label": "input_int",
+    "kind": "function",
+    "detail": "read terminal input as int",
+    "insertText": "input_int(${1:\"Prompt: \"})"
+  },
+  {
+    "label": "lower",
+    "kind": "function",
+    "detail": "convert string to lowercase",
+    "insertText": "lower(${1:value})"
+  },
+  {
+    "label": "upper",
+    "kind": "function",
+    "detail": "convert string to uppercase",
+    "insertText": "upper(${1:value})"
+  },
+  {
+    "label": "trim",
+    "kind": "function",
+    "detail": "trim whitespace from string",
+    "insertText": "trim(${1:value})"
+  },
+  {
+    "label": "contains",
+    "kind": "function",
+    "detail": "check if a string contains another string",
+    "insertText": "contains(${1:value}, ${2:needle})"
+  },
+  {
+    "label": "cons",
+    "kind": "function",
+    "detail": "print to console",
+    "insertText": "cons!(${1:value});"
+  },
+  {
+    "label": "push",
+    "kind": "function",
+    "detail": "push value into array",
+    "insertText": "push!(${1:arr}, ${2:value});"
+  },
+  {
+    "label": "set",
+    "kind": "function",
+    "detail": "set dictionary key",
+    "insertText": "set!(${1:dict}, \"${2:key}\", ${3:value});"
+  },
+  {
+    "label": "main",
+    "kind": "snippet",
+    "detail": "main function",
+    "insertText": "pub fcn main () {\n\t$0\n}"
+  },
+  {
+    "label": "fcn return",
+    "kind": "snippet",
+    "detail": "function with return type",
+    "insertText": "fcn ${1:name} (${2}) -> ${3:int} {\n\treturn ${4:0};\n}"
+  },
+  {
+    "label": "void fcn",
+    "kind": "snippet",
+    "detail": "function with no return",
+    "insertText": "fcn ${1:name} (${2}) {\n\t$0\n}"
+  },
+  {
+    "label": "if block",
+    "kind": "snippet",
+    "detail": "if statement",
+    "insertText": "if ${1:condition} {\n\t$0\n}"
+  },
+  {
+    "label": "if else",
+    "kind": "snippet",
+    "detail": "if else statement",
+    "insertText": "if ${1:condition} {\n\t$2\n} else {\n\t$0\n}"
+  },
+  {
+    "label": "while block",
+    "kind": "snippet",
+    "detail": "while loop",
+    "insertText": "while ${1:condition} {\n\t$0\n}"
+  },
+  {
+    "label": "for loop",
+    "kind": "snippet",
+    "detail": "classic for loop",
+    "insertText": "for (cre_int ${1:i} = 0; ${1:i} < ${2:10}; ${1:i} = ${1:i} + 1) {\n\t$0\n}"
+  },
+  {
+    "label": "foreach",
+    "kind": "snippet",
+    "detail": "for-each loop",
+    "insertText": "for (${1:cre_int} ${2:item} in ${3:items}) {\n\t$0\n}"
+  },
+  {
+    "label": "arr",
+    "kind": "snippet",
+    "detail": "array variable",
+    "insertText": "cre_arr ${1:items} = [\n\t${2:\"item\"},\n];"
+  },
+  {
+    "label": "dict",
+    "kind": "snippet",
+    "detail": "dictionary variable",
+    "insertText": "cre_dict ${1:user} = {\n\t\"${2:name}\": \"${3:John Doe}\",\n\t\"${4:age}\": ${5:37},\n};"
+  },
+  {
+    "label": "use file",
+    "kind": "snippet",
+    "detail": "import local TSST file",
+    "insertText": "use \"${1:file.tsst}\";"
+  },
+  {
+    "label": "use package",
+    "kind": "snippet",
+    "detail": "import package module",
+    "insertText": "use \"${1:quartus}:${2:math}\";"
+  },
+  {
+    "label": "input cleaned",
+    "kind": "snippet",
+    "detail": "read, trim, and lowercase user input",
+    "insertText": "cre_str ${1:choice} = lower(trim(input_str(\"${2:Choice: \")));"
+  },
+  {
+    "label": "calculator",
+    "kind": "snippet",
+    "detail": "interactive calculator starter",
+    "insertText": "use \"quartus:math\";\nuse \"quartus:ui\";\n\nfcn calculate (cre_int a, cre_int b, cre_str op) -> int {\n\tif op == \"add\" || op == \"+\" {\n\t\treturn a + b;\n\t}\n\n\tif op == \"subtract\" || op == \"-\" {\n\t\treturn a - b;\n\t}\n\n\tif op == \"multiply\" || op == \"*\" {\n\t\treturn a * b;\n\t}\n\n\tif op == \"divide\" || op == \"/\" {\n\t\treturn a / b;\n\t}\n\n\treturn 0;\n}\n\npub fcn main () {\n\tq_ui_app_start(\"Calculator\");\n\n\tcre_int a = input_int(\"First number: \");\n\tcre_str op = lower(trim(input_str(\"Operation: \")));\n\tcre_int b = input_int(\"Second number: \");\n\n\tq_ui_number(\"Result\", calculate(a, b, op));\n\n\tq_ui_app_end();\n}"
+  }
+]

@@ -38,7 +38,11 @@
     },
     {
       "name": "support.function.builtin.tsst",
-      "match": "\\b(len)\\b"
+      "match": "\\b(len|input_str|input_int|lower|upper|trim|contains)\\b"
+    },
+    {
+      "name": "keyword.operator.logical.tsst",
+      "match": "(\\&\\&|\\|\\||!)"
     },
     {
       "name": "keyword.operator.tsst",

@@ -2,7 +2,7 @@
   "name": "vscode-tsst",
   "displayName": "TSST Language Support",
   "description": "Syntax highlighting and autocomplete for TSST",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "rere",
   "engines": {
     "vscode": "^1.80.0"

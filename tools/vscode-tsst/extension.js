@@ -1,5 +1,8 @@
 const vscode = require("vscode");
 const path = require("path");
+const fs = require("fs");
+
+let cachedTable = null;
 
 function activate(context) {
     const provider = vscode.languages.registerCompletionItemProvider(
@@ -8,10 +11,10 @@ function activate(context) {
             async provideCompletionItems(document) {
                 const items = [];
 
-                addStaticItems(items);
+                const table = await loadCompletionTable(context);
+                addTableItems(items, table);
 
-                const currentText = document.getText();
-                addSymbolsFromText(items, currentText, "current file");
+                addSymbolsFromText(items, document.getText(), "current file");
 
                 const importedTexts = await getImportedTexts(document);
 
@@ -25,103 +28,142 @@ function activate(context) {
         "!",
         ".",
         "\"",
-        "_"
+        "_",
+        "&",
+        "|"
     );
 
     context.subscriptions.push(provider);
 }
 
-function addStaticItems(items) {
-    function keyword(label, detail) {
-        const item = new vscode.CompletionItem(label, vscode.CompletionItemKind.Keyword);
-        item.detail = detail;
-        items.push(item);
+async function loadCompletionTable(context) {
+    if (cachedTable) {
+        return cachedTable;
     }
 
-    function snippet(label, insertText, detail) {
-        const item = new vscode.CompletionItem(label, vscode.CompletionItemKind.Snippet);
-        item.insertText = new vscode.SnippetString(insertText);
-        item.detail = detail;
+    const uri = vscode.Uri.joinPath(context.extensionUri, "completions.json");
+
+    try {
+        const bytes = await vscode.workspace.fs.readFile(uri);
+        const text = Buffer.from(bytes).toString("utf8");
+        cachedTable = JSON.parse(text);
+
+        if (!Array.isArray(cachedTable)) {
+            cachedTable = [];
+        }
+
+        return cachedTable;
+    } catch {
+        cachedTable = fallbackCompletions();
+        return cachedTable;
+    }
+}
+
+function fallbackCompletions() {
+    return [
+        {
+            label: "main",
+            kind: "snippet",
+            detail: "main function",
+            insertText: "pub fcn main () {\n\t$0\n}"
+        },
+        {
+            label: "input_str",
+            kind: "function",
+            detail: "read terminal input as str",
+            insertText: "input_str(${1:\"Prompt: \"})"
+        },
+        {
+            label: "input_int",
+            kind: "function",
+            detail: "read terminal input as int",
+            insertText: "input_int(${1:\"Prompt: \"})"
+        },
+        {
+            label: "lower",
+            kind: "function",
+            detail: "convert string to lowercase",
+            insertText: "lower(${1:value})"
+        },
+        {
+            label: "upper",
+            kind: "function",
+            detail: "convert string to uppercase",
+            insertText: "upper(${1:value})"
+        },
+        {
+            label: "trim",
+            kind: "function",
+            detail: "trim whitespace from string",
+            insertText: "trim(${1:value})"
+        },
+        {
+            label: "contains",
+            kind: "function",
+            detail: "check if a string contains another string",
+            insertText: "contains(${1:value}, ${2:needle})"
+        }
+    ];
+}
+
+function addTableItems(items, table) {
+    for (const entry of table) {
+        if (!entry || !entry.label) {
+            continue;
+        }
+
+        const item = new vscode.CompletionItem(entry.label, kindFromString(entry.kind));
+
+        if (entry.detail) {
+            item.detail = entry.detail;
+        }
+
+        if (entry.documentation) {
+            item.documentation = new vscode.MarkdownString(entry.documentation);
+        }
+
+        if (entry.insertText) {
+            if (entry.kind === "snippet" || entry.insertText.includes("$")) {
+                item.insertText = new vscode.SnippetString(entry.insertText);
+            } else {
+                item.insertText = entry.insertText;
+            }
+        }
+
         items.push(item);
     }
+}
 
-    function fn(label, insertText, detail) {
-        const item = new vscode.CompletionItem(label, vscode.CompletionItemKind.Function);
-        item.insertText = new vscode.SnippetString(insertText);
-        item.detail = detail;
-        items.push(item);
+function kindFromString(kind) {
+    if (kind === "keyword") {
+        return vscode.CompletionItemKind.Keyword;
     }
 
-    keyword("pub", "public function keyword");
-    keyword("fcn", "function keyword");
-    keyword("return", "return from function");
-    keyword("if", "if statement");
-    keyword("else", "else statement");
-    keyword("while", "while loop");
-    keyword("for", "for loop");
-    keyword("in", "for-each keyword");
-    keyword("break", "break out of loop");
-    keyword("continue", "continue loop");
-    keyword("use", "import another TSST file or package");
+    if (kind === "snippet") {
+        return vscode.CompletionItemKind.Snippet;
+    }
 
-    keyword("cre_int", "create int variable");
-    keyword("cre_str", "create string variable");
-    keyword("cre_bool", "create bool variable");
-    keyword("cre_arr", "create array variable");
-    keyword("cre_dict", "create dictionary variable");
+    if (kind === "function") {
+        return vscode.CompletionItemKind.Function;
+    }
 
-    fn("len", "len(${1:value})", "get length of string, array, or dictionary");
+    if (kind === "variable") {
+        return vscode.CompletionItemKind.Variable;
+    }
 
-    snippet("main", "pub fcn main () {\n\t$0\n}", "main function");
+    if (kind === "operator") {
+        return vscode.CompletionItemKind.Operator;
+    }
 
-    snippet(
-        "fcn",
-        "fcn ${1:name} (${2}) -> ${3:int} {\n\treturn ${4:0};\n}",
-        "function with return type"
-    );
+    if (kind === "value") {
+        return vscode.CompletionItemKind.Value;
+    }
 
-    snippet(
-        "void fcn",
-        "fcn ${1:name} (${2}) {\n\t$0\n}",
-        "function with no return"
-    );
+    if (kind === "module") {
+        return vscode.CompletionItemKind.Module;
+    }
 
-    snippet("if", "if ${1:condition} {\n\t$0\n}", "if statement");
-
-    snippet(
-        "if else",
-        "if ${1:condition} {\n\t$2\n} else {\n\t$0\n}",
-        "if else statement"
-    );
-
-    snippet("while", "while ${1:condition} {\n\t$0\n}", "while loop");
-
-    snippet(
-        "for",
-        "for (cre_int ${1:i} = 0; ${1:i} < ${2:10}; ${1:i} = ${1:i} + 1) {\n\t$0\n}",
-        "classic for loop"
-    );
-
-    snippet(
-        "foreach",
-        "for (${1:cre_int} ${2:item} in ${3:items}) {\n\t$0\n}",
-        "for-each loop"
-    );
-
-    snippet("arr", "cre_arr ${1:nums} = [${2:1, 2, 3}];", "array variable");
-
-    snippet(
-        "dict",
-        "cre_dict ${1:user} = {\n\t\"${2:name}\": \"${3:John Doe}\",\n\t\"${4:age}\": ${5:37},\n};",
-        "dictionary variable"
-    );
-
-    snippet("cons", "cons!(${1:value});", "print to console");
-    snippet("push", "push!(${1:arr}, ${2:value});", "push value into array");
-    snippet("set", "set!(${1:dict}, \"${2:key}\", ${3:value});", "set dictionary value");
-
-    snippet("use file", "use \"${1:file.tsst}\";", "import local file");
-    snippet("use package", "use \"${1:ui}:${2:ui}\";", "import package file");
+    return vscode.CompletionItemKind.Text;
 }
 
 function addSymbolsFromText(items, text, sourceLabel) {
@@ -209,15 +251,21 @@ async function getImportedTexts(document) {
     const text = document.getText();
     const importRegex = /^\s*use\s+"([^"]+)"\s*;/gm;
     let match;
+    const seen = new Set();
 
     while ((match = importRegex.exec(text)) !== null) {
         const importValue = match[1];
-
         const resolved = resolveImport(document.uri.fsPath, importValue);
 
         if (!resolved) {
             continue;
         }
+
+        if (seen.has(resolved.fullPath)) {
+            continue;
+        }
+
+        seen.add(resolved.fullPath);
 
         try {
             const bytes = await vscode.workspace.fs.readFile(vscode.Uri.file(resolved.fullPath));
@@ -237,7 +285,17 @@ function resolveImport(currentFilePath, importValue) {
         return resolvePackageImport(currentFilePath, importValue);
     }
 
-    return resolveLocalImport(currentFilePath, importValue);
+    const local = resolveLocalImport(currentFilePath, importValue);
+
+    if (fs.existsSync(local.fullPath)) {
+        return local;
+    }
+
+    if (looksLikePackageSlashImport(importValue)) {
+        return resolvePackageSlashImport(currentFilePath, importValue);
+    }
+
+    return local;
 }
 
 function resolveLocalImport(currentFilePath, importValue) {
@@ -270,13 +328,35 @@ function resolvePackageImport(currentFilePath, importValue) {
         return null;
     }
 
-    const modulePath = ensureTsstExtension(moduleName.replaceAll(".", path.sep));
+    const modulePath = ensureTsstExtension(moduleName.split(".").join(path.sep));
     const fullPath = path.join(projectRoot, "packages", packageName, modulePath);
 
     return {
         fullPath,
         label: `package: ${packageName}:${moduleName}`
     };
+}
+
+function resolvePackageSlashImport(currentFilePath, importValue) {
+    const projectRoot = findProjectRoot(path.dirname(currentFilePath));
+
+    if (!projectRoot) {
+        return null;
+    }
+
+    const fullPath = path.join(projectRoot, "packages", ensureTsstExtension(importValue));
+
+    return {
+        fullPath,
+        label: `package: ${importValue}`
+    };
+}
+
+function looksLikePackageSlashImport(importValue) {
+    return !importValue.startsWith("./")
+        && !importValue.startsWith("../")
+        && !importValue.endsWith(".tsst")
+        && importValue.includes("/");
 }
 
 function ensureTsstExtension(value) {
@@ -294,7 +374,7 @@ function findProjectRoot(startDir) {
         const manifestPath = path.join(current, "tsst.json");
 
         try {
-            const stat = require("fs").statSync(manifestPath);
+            const stat = fs.statSync(manifestPath);
 
             if (stat.isFile()) {
                 return current;
