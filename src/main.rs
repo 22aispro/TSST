@@ -1,9 +1,12 @@
 mod ast;
+mod compiler;
+mod generated_runtime;
 mod interpreter;
 mod lexer;
 mod parser;
 mod token;
 
+use compiler::Compiler;
 use interpreter::Interpreter;
 use lexer::Lexer;
 use parser::Parser;
@@ -68,6 +71,17 @@ fn main() {
             }
         }
 
+        "build" => {
+            let file_path = args
+                .get(2)
+                .map(PathBuf::from)
+                .unwrap_or_else(|| PathBuf::from("main.tsst"));
+
+            if let Err(error) = build_file(file_path) {
+                eprintln!("Build error: {}", error);
+            }
+        }
+
         "run" => {
             let file_path = args
                 .get(2)
@@ -89,6 +103,7 @@ fn print_help() {
     println!("Usage:");
     println!("  tsst <file.tsst>          Run a TSST file");
     println!("  tsst run <file.tsst>      Run a TSST file");
+    println!("  tsst build <file.tsst>    Compile a TSST file into a Rust executable");
     println!("  tsst init [name]          Create a new TSST project");
     println!("  tsst install              Install packages from tsst.json");
     println!("  tsst list                 Show installed packages");
@@ -100,8 +115,8 @@ fn print_help() {
     println!("  tsst init MyApp");
     println!("  cd MyApp");
     println!("  tsst install");
-    println!("  tsst list");
-    println!("  tsst main.tsst");
+    println!("  tsst build main.tsst");
+    println!("  tsst run main.tsst");
 }
 
 fn run_file(file_path: PathBuf) {
@@ -140,6 +155,103 @@ fn run_file(file_path: PathBuf) {
     if let Err(error) = interpreter.run(&program) {
         eprintln!("Runtime error: {}", error);
     }
+}
+
+fn build_file(file_path: PathBuf) -> Result<(), String> {
+    let mut imported_files = HashSet::new();
+
+    let source = read_source_with_imports(&file_path, &mut imported_files)?;
+
+    let mut lexer = Lexer::new(&source);
+    let tokens = lexer.tokenize().map_err(|error| format!("Lexer error: {}", error))?;
+
+    let mut parser = Parser::new(tokens);
+    let program = parser
+        .parse_program()
+        .map_err(|error| format!("Parser error: {}", error))?;
+
+    let mut compiler = Compiler::new();
+    let rust_source = compiler.compile_program(&program)?;
+
+    let project_root = find_project_root(&env::current_dir().map_err(|error| error.to_string())?)
+        .unwrap_or_else(|| env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
+
+    let build_root = project_root.join("build");
+    let rust_project = build_root.join("rust");
+    let rust_src = rust_project.join("src");
+    let release_dir = build_root.join("release");
+
+    fs::create_dir_all(&rust_src).map_err(|error| error.to_string())?;
+    fs::create_dir_all(&release_dir).map_err(|error| error.to_string())?;
+
+    let package_name = file_path
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .unwrap_or("tsst_app")
+        .replace('-', "_");
+
+    fs::write(
+        rust_project.join("Cargo.toml"),
+        format!(
+            r#"[package]
+name = "{}"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+eframe = "0.29"
+egui = "0.29"
+"#,
+            package_name
+        ),
+    )
+    .map_err(|error| error.to_string())?;
+
+    fs::write(rust_src.join("main.rs"), rust_source).map_err(|error| error.to_string())?;
+
+    println!("Generated Rust project:");
+    println!("  {}", rust_project.display());
+    println!();
+    println!("Building release executable...");
+
+    let status = Command::new("cargo")
+        .arg("build")
+        .arg("--release")
+        .current_dir(&rust_project)
+        .status()
+        .map_err(|error| {
+            format!(
+                "Failed to run cargo. Make sure Rust is installed and cargo is in PATH. {}",
+                error
+            )
+        })?;
+
+    if !status.success() {
+        return Err("Rust build failed.".to_string());
+    }
+
+    let exe_name = if cfg!(windows) {
+        format!("{}.exe", package_name)
+    } else {
+        package_name.clone()
+    };
+
+    let built_exe = rust_project.join("target").join("release").join(&exe_name);
+    let final_exe = release_dir.join(&exe_name);
+
+    if built_exe.exists() {
+        fs::copy(&built_exe, &final_exe).map_err(|error| error.to_string())?;
+
+        println!();
+        println!("Built executable:");
+        println!("  {}", final_exe.display());
+    } else {
+        println!();
+        println!("Cargo finished, but executable was not found at:");
+        println!("  {}", built_exe.display());
+    }
+
+    Ok(())
 }
 
 fn init_project(project_name: Option<&str>) -> Result<(), String> {
