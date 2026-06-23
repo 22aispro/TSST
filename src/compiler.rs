@@ -8,6 +8,8 @@ pub struct Compiler {
     temp_counter: usize,
     current_return_type: Option<String>,
     current_function_name: String,
+    loop_stack: Vec<Option<Assignment>>,
+    uses_gui: bool,
 }
 
 impl Compiler {
@@ -16,27 +18,33 @@ impl Compiler {
             temp_counter: 0,
             current_return_type: None,
             current_function_name: String::new(),
+            loop_stack: Vec::new(),
+            uses_gui: false,
         }
     }
 
     pub fn compile_program(&mut self, program: &Program) -> Result<String, String> {
-        let mut output = String::new();
-
-        output.push_str(runtime_source());
-        output.push('\n');
+        let mut functions = String::new();
+        self.uses_gui = false;
 
         for item in &program.items {
             match item {
                 Item::Function(function) => {
-                    output.push_str(&self.compile_function(function)?);
-                    output.push('\n');
+                    functions.push_str(&self.compile_function(function)?);
+                    functions.push('\n');
                 }
 
                 Item::VarDecl(_) => {
-                    return Err("Top-level variables are not supported by tsst build yet.".to_string());
+                    return Err(
+                        "Top-level variables are not supported by tsst build yet.".to_string()
+                    );
                 }
             }
         }
+
+        let mut output = runtime_source(self.uses_gui);
+        output.push('\n');
+        output.push_str(&functions);
 
         if !program.items.iter().any(|item| {
             if let Item::Function(function) = item {
@@ -134,7 +142,7 @@ fn main() {
             Stmt::For(for_stmt) => self.compile_for(for_stmt, indent),
             Stmt::ForEach(for_each_stmt) => self.compile_for_each(for_each_stmt, indent),
             Stmt::Break => Ok(indent_line(indent, "break;")),
-            Stmt::Continue => Ok(indent_line(indent, "continue;")),
+            Stmt::Continue => self.compile_continue(indent),
             Stmt::Return(return_stmt) => self.compile_return(return_stmt, indent),
         }
     }
@@ -173,7 +181,7 @@ fn main() {
         let mut output = String::new();
 
         output.push_str(&indent_line(indent, "{"));
-        output.push_str(&indent_line(indent + 1, &format!("let {} = {};", temp, value)));
+        output.push_str(&indent_line(indent + 1, &format!("let {temp} = {value};")));
         output.push_str(&indent_line(
             indent + 1,
             &format!(
@@ -218,14 +226,16 @@ fn main() {
 
                 let target = match &macro_call.args[0] {
                     Expr::Ident(name) => rust_var(name),
-                    _ => return Err("push!() first argument must be an array variable.".to_string()),
+                    _ => {
+                        return Err("push!() first argument must be an array variable.".to_string())
+                    }
                 };
 
                 let value = self.compile_expr(&macro_call.args[1])?;
 
                 Ok(indent_line(
                     indent,
-                    &format!("push_value(&mut {}, {}, \"push!\")?;", target, value),
+                    &format!("push_value(&mut {target}, {value}, \"push!\")?;"),
                 ))
             }
 
@@ -248,11 +258,11 @@ fn main() {
 
                 Ok(indent_line(
                     indent,
-                    &format!("set_value(&mut {}, {}, {}, \"set!\")?;", target, key, value),
+                    &format!("set_value(&mut {target}, {key}, {value}, \"set!\")?;"),
                 ))
             }
 
-            other => Err(format!("Unknown macro '{}!'.", other)),
+            other => Err(format!("Unknown macro '{other}!'.")),
         }
     }
 
@@ -261,12 +271,12 @@ fn main() {
         function_call: &FunctionCall,
         indent: usize,
     ) -> Result<String, String> {
-        let args = self.compile_args(&function_call.args)?;
-
-        Ok(indent_line(
-            indent,
-            &format!("{}({})?;", rust_fn(&function_call.name), args),
-        ))
+        let expression = Expr::Call {
+            name: function_call.name.clone(),
+            args: function_call.args.clone(),
+        };
+        let compiled = self.compile_expr(&expression)?;
+        Ok(indent_line(indent, &format!("{compiled};")))
     }
 
     fn compile_if(&mut self, if_stmt: &IfStmt, indent: usize) -> Result<String, String> {
@@ -275,7 +285,7 @@ fn main() {
 
         output.push_str(&indent_line(
             indent,
-            &format!("if expect_bool({}, \"if condition\")? {{", condition),
+            &format!("if expect_bool({condition}, \"if condition\")? {{"),
         ));
 
         for stmt in &if_stmt.then_body {
@@ -304,12 +314,17 @@ fn main() {
 
         output.push_str(&indent_line(
             indent,
-            &format!("while expect_bool({}, \"while condition\")? {{", condition),
+            &format!("while expect_bool({condition}, \"while condition\")? {{"),
         ));
 
-        for stmt in &while_stmt.body {
-            output.push_str(&self.compile_stmt(stmt, indent + 1)?);
-        }
+        self.loop_stack.push(None);
+        let body = while_stmt
+            .body
+            .iter()
+            .map(|stmt| self.compile_stmt(stmt, indent + 1))
+            .collect::<Result<String, String>>();
+        self.loop_stack.pop();
+        output.push_str(&body?);
 
         output.push_str(&indent_line(indent, "}"));
 
@@ -319,7 +334,6 @@ fn main() {
     fn compile_for(&mut self, for_stmt: &ForStmt, indent: usize) -> Result<String, String> {
         let init_value = self.compile_expr(&for_stmt.initializer.value)?;
         let condition = self.compile_expr(&for_stmt.condition)?;
-        let update_value = self.compile_expr(&for_stmt.update.value)?;
         let mut output = String::new();
 
         output.push_str(&indent_line(indent, "{"));
@@ -343,17 +357,18 @@ fn main() {
 
         output.push_str(&indent_line(
             indent + 1,
-            &format!("while expect_bool({}, \"for condition\")? {{", condition),
+            &format!("while expect_bool({condition}, \"for condition\")? {{"),
         ));
 
-        for stmt in &for_stmt.body {
-            output.push_str(&self.compile_stmt(stmt, indent + 2)?);
-        }
-
-        output.push_str(&indent_line(
-            indent + 2,
-            &format!("{} = {};", rust_var(&for_stmt.update.name), update_value),
-        ));
+        self.loop_stack.push(Some(for_stmt.update.clone()));
+        let body = for_stmt
+            .body
+            .iter()
+            .map(|stmt| self.compile_stmt(stmt, indent + 2))
+            .collect::<Result<String, String>>();
+        self.loop_stack.pop();
+        output.push_str(&body?);
+        output.push_str(&self.compile_assignment(&for_stmt.update, indent + 2)?);
 
         output.push_str(&indent_line(indent + 1, "}"));
         output.push_str(&indent_line(indent, "}"));
@@ -372,8 +387,11 @@ fn main() {
         let mut output = String::new();
 
         output.push_str(&indent_line(indent, "{"));
-        output.push_str(&indent_line(indent + 1, &format!("let {} = {};", temp, iterable)));
-        output.push_str(&indent_line(indent + 1, &format!("match {} {{", temp)));
+        output.push_str(&indent_line(
+            indent + 1,
+            &format!("let {temp} = {iterable};"),
+        ));
+        output.push_str(&indent_line(indent + 1, &format!("match {temp} {{")));
 
         output.push_str(&indent_line(indent + 2, "RtValue::Array(values) => {"));
         output.push_str(&indent_line(indent + 3, "for item in values {"));
@@ -391,9 +409,14 @@ fn main() {
             ),
         ));
 
-        for stmt in &for_each_stmt.body {
-            output.push_str(&self.compile_stmt(stmt, indent + 4)?);
-        }
+        self.loop_stack.push(None);
+        let array_body = for_each_stmt
+            .body
+            .iter()
+            .map(|stmt| self.compile_stmt(stmt, indent + 4))
+            .collect::<Result<String, String>>();
+        self.loop_stack.pop();
+        output.push_str(&array_body?);
 
         output.push_str(&indent_line(indent + 3, "}"));
         output.push_str(&indent_line(indent + 2, "}"));
@@ -401,13 +424,16 @@ fn main() {
         output.push_str(&indent_line(indent + 2, "RtValue::Dict(values) => {"));
         output.push_str(&indent_line(
             indent + 3,
-            &format!("let mut {}: Vec<String> = values.keys().cloned().collect();", keys),
+            &format!("let mut {keys}: Vec<String> = values.keys().cloned().collect();"),
         ));
-        output.push_str(&indent_line(indent + 3, &format!("{}.sort();", keys)));
-        output.push_str(&indent_line(indent + 3, &format!("for key in {} {{", keys)));
+        output.push_str(&indent_line(indent + 3, &format!("{keys}.sort();")));
+        output.push_str(&indent_line(indent + 3, &format!("for key in {keys} {{")));
         output.push_str(&indent_line(
             indent + 4,
-            &format!("let mut {} = RtValue::Str(key);", rust_var(&for_each_stmt.item_name)),
+            &format!(
+                "let mut {} = RtValue::Str(key);",
+                rust_var(&for_each_stmt.item_name)
+            ),
         ));
         output.push_str(&indent_line(
             indent + 4,
@@ -419,9 +445,14 @@ fn main() {
             ),
         ));
 
-        for stmt in &for_each_stmt.body {
-            output.push_str(&self.compile_stmt(stmt, indent + 4)?);
-        }
+        self.loop_stack.push(None);
+        let dict_body = for_each_stmt
+            .body
+            .iter()
+            .map(|stmt| self.compile_stmt(stmt, indent + 4))
+            .collect::<Result<String, String>>();
+        self.loop_stack.pop();
+        output.push_str(&dict_body?);
 
         output.push_str(&indent_line(indent + 3, "}"));
         output.push_str(&indent_line(indent + 2, "}"));
@@ -437,13 +468,17 @@ fn main() {
         Ok(output)
     }
 
-    fn compile_return(&mut self, return_stmt: &ReturnStmt, indent: usize) -> Result<String, String> {
+    fn compile_return(
+        &mut self,
+        return_stmt: &ReturnStmt,
+        indent: usize,
+    ) -> Result<String, String> {
         let value = self.compile_expr(&return_stmt.value)?;
         let temp = self.next_temp();
         let mut output = String::new();
 
         output.push_str(&indent_line(indent, "{"));
-        output.push_str(&indent_line(indent + 1, &format!("let {} = {};", temp, value)));
+        output.push_str(&indent_line(indent + 1, &format!("let {temp} = {value};")));
 
         if let Some(return_type) = &self.current_return_type {
             output.push_str(&indent_line(
@@ -457,17 +492,28 @@ fn main() {
             ));
         }
 
-        output.push_str(&indent_line(indent + 1, &format!("return Ok({});", temp)));
+        output.push_str(&indent_line(indent + 1, &format!("return Ok({temp});")));
         output.push_str(&indent_line(indent, "}"));
 
         Ok(output)
     }
 
+    fn compile_continue(&mut self, indent: usize) -> Result<String, String> {
+        let mut output = String::new();
+
+        if let Some(Some(update)) = self.loop_stack.last().cloned() {
+            output.push_str(&self.compile_assignment(&update, indent)?);
+        }
+
+        output.push_str(&indent_line(indent, "continue;"));
+        Ok(output)
+    }
+
     fn compile_expr(&mut self, expr: &Expr) -> Result<String, String> {
         match expr {
-            Expr::Int(value) => Ok(format!("RtValue::Int({})", value)),
-            Expr::Str(value) => Ok(format!("RtValue::Str(String::from({:?}))", value)),
-            Expr::Bool(value) => Ok(format!("RtValue::Bool({})", value)),
+            Expr::Int(value) => Ok(format!("RtValue::Int({value})")),
+            Expr::Str(value) => Ok(format!("RtValue::Str(String::from({value:?}))")),
+            Expr::Bool(value) => Ok(format!("RtValue::Bool({value})")),
             Expr::Ident(name) => Ok(format!("{}.clone()", rust_var(name))),
 
             Expr::ArrayLiteral(values) => {
@@ -477,7 +523,7 @@ fn main() {
                     .collect::<Result<Vec<String>, String>>()?
                     .join(", ");
 
-                Ok(format!("RtValue::Array(vec![{}])", compiled))
+                Ok(format!("RtValue::Array(vec![{compiled}])"))
             }
 
             Expr::DictLiteral(values) => {
@@ -488,30 +534,50 @@ fn main() {
                 let mut pairs = Vec::new();
 
                 for (key, value) in values {
-                    pairs.push(format!("(String::from({:?}), {})", key, self.compile_expr(value)?));
+                    pairs.push(format!(
+                        "(String::from({:?}), {})",
+                        key,
+                        self.compile_expr(value)?
+                    ));
                 }
 
-                Ok(format!("RtValue::Dict(HashMap::from([{}]))", pairs.join(", ")))
+                Ok(format!(
+                    "RtValue::Dict(HashMap::from([{}]))",
+                    pairs.join(", ")
+                ))
             }
 
             Expr::Index { target, index } => {
                 let target = self.compile_expr(target)?;
                 let index = self.compile_expr(index)?;
 
-                Ok(format!("index_value({}, {})?", target, index))
+                Ok(format!("index_value({target}, {index})?"))
             }
 
             Expr::Call { name, args } => {
+                if name.starts_with("gui_") {
+                    self.uses_gui = true;
+                }
+
                 let args = self.compile_args(args)?;
 
                 match name.as_str() {
-                    "len" => Ok(format!("builtin_len({})?", args)),
-                    "input_str" => Ok(format!("builtin_input_str({})?", args)),
-                    "input_int" => Ok(format!("builtin_input_int({})?", args)),
-                    "lower" => Ok(format!("builtin_lower({})?", args)),
-                    "upper" => Ok(format!("builtin_upper({})?", args)),
-                    "trim" => Ok(format!("builtin_trim({})?", args)),
-                    "contains" => Ok(format!("builtin_contains({})?", args)),
+                    "len" => Ok(format!("builtin_len({args})?")),
+                    "input_str" => Ok(format!("builtin_input_str({args})?")),
+                    "input_int" => Ok(format!("builtin_input_int({args})?")),
+                    "lower" => Ok(format!("builtin_lower({args})?")),
+                    "upper" => Ok(format!("builtin_upper({args})?")),
+                    "trim" => Ok(format!("builtin_trim({args})?")),
+                    "contains" => Ok(format!("builtin_contains({args})?")),
+                    "os_run" => Ok(format!("builtin_os_run({args})?")),
+                    "os_capture" => Ok(format!("builtin_os_capture({args})?")),
+                    "os_get_env" => Ok(format!("builtin_os_get_env({args})?")),
+                    "os_set_env" => Ok(format!("builtin_os_set_env({args})?")),
+                    "os_read_file" => Ok(format!("builtin_os_read_file({args})?")),
+                    "os_write_file" => Ok(format!("builtin_os_write_file({args})?")),
+                    "os_exists" => Ok(format!("builtin_os_exists({args})?")),
+                    "os_sleep" => Ok(format!("builtin_os_sleep({args})?")),
+                    "os_current_dir" => Ok("builtin_os_current_dir()?".to_string()),
                     _ => Ok(format!("{}({})?", rust_fn(name), args)),
                 }
             }
@@ -520,8 +586,8 @@ fn main() {
                 let value = self.compile_expr(expr)?;
 
                 match op {
-                    UnaryOp::Not => Ok(format!("unary_not({})?", value)),
-                    UnaryOp::Neg => Ok(format!("unary_neg({})?", value)),
+                    UnaryOp::Not => Ok(format!("unary_not({value})?")),
+                    UnaryOp::Neg => Ok(format!("unary_neg({value})?")),
                 }
             }
 
@@ -532,8 +598,7 @@ fn main() {
                     let right = self.compile_expr(right)?;
 
                     return Ok(format!(
-                        "{{ let {} = expect_bool({}, \"&& left\")?; if !{} {{ RtValue::Bool(false) }} else {{ RtValue::Bool(expect_bool({}, \"&& right\")?) }} }}",
-                        temp, left, temp, right
+                        "{{ let {temp} = expect_bool({left}, \"&& left\")?; if !{temp} {{ RtValue::Bool(false) }} else {{ RtValue::Bool(expect_bool({right}, \"&& right\")?) }} }}"
                     ));
                 }
 
@@ -543,8 +608,7 @@ fn main() {
                     let right = self.compile_expr(right)?;
 
                     return Ok(format!(
-                        "{{ let {} = expect_bool({}, \"|| left\")?; if {} {{ RtValue::Bool(true) }} else {{ RtValue::Bool(expect_bool({}, \"|| right\")?) }} }}",
-                        temp, left, temp, right
+                        "{{ let {temp} = expect_bool({left}, \"|| left\")?; if {temp} {{ RtValue::Bool(true) }} else {{ RtValue::Bool(expect_bool({right}, \"|| right\")?) }} }}"
                     ));
                 }
 
@@ -552,16 +616,16 @@ fn main() {
                 let right = self.compile_expr(right)?;
 
                 match op {
-                    BinaryOp::Add => Ok(format!("binary_add({}, {})?", left, right)),
-                    BinaryOp::Sub => Ok(format!("binary_sub({}, {})?", left, right)),
-                    BinaryOp::Mul => Ok(format!("binary_mul({}, {})?", left, right)),
-                    BinaryOp::Div => Ok(format!("binary_div({}, {})?", left, right)),
-                    BinaryOp::Eq => Ok(format!("RtValue::Bool({} == {})", left, right)),
-                    BinaryOp::NotEq => Ok(format!("RtValue::Bool({} != {})", left, right)),
-                    BinaryOp::Less => Ok(format!("binary_less({}, {})?", left, right)),
-                    BinaryOp::Greater => Ok(format!("binary_greater({}, {})?", left, right)),
-                    BinaryOp::LessEq => Ok(format!("binary_less_eq({}, {})?", left, right)),
-                    BinaryOp::GreaterEq => Ok(format!("binary_greater_eq({}, {})?", left, right)),
+                    BinaryOp::Add => Ok(format!("binary_add({left}, {right})?")),
+                    BinaryOp::Sub => Ok(format!("binary_sub({left}, {right})?")),
+                    BinaryOp::Mul => Ok(format!("binary_mul({left}, {right})?")),
+                    BinaryOp::Div => Ok(format!("binary_div({left}, {right})?")),
+                    BinaryOp::Eq => Ok(format!("RtValue::Bool({left} == {right})")),
+                    BinaryOp::NotEq => Ok(format!("RtValue::Bool({left} != {right})")),
+                    BinaryOp::Less => Ok(format!("binary_less({left}, {right})?")),
+                    BinaryOp::Greater => Ok(format!("binary_greater({left}, {right})?")),
+                    BinaryOp::LessEq => Ok(format!("binary_less_eq({left}, {right})?")),
+                    BinaryOp::GreaterEq => Ok(format!("binary_greater_eq({left}, {right})?")),
                     BinaryOp::And | BinaryOp::Or => unreachable!(),
                 }
             }

@@ -67,7 +67,12 @@ impl Lexer {
                     self.advance();
 
                     if self.match_char('=') {
-                        tokens.push(Token::new(TokenKind::EqualEqual, "==".to_string(), line, column));
+                        tokens.push(Token::new(
+                            TokenKind::EqualEqual,
+                            "==".to_string(),
+                            line,
+                            column,
+                        ));
                     } else {
                         tokens.push(Token::new(TokenKind::Equal, "=".to_string(), line, column));
                     }
@@ -77,7 +82,12 @@ impl Lexer {
                     self.advance();
 
                     if self.match_char('=') {
-                        tokens.push(Token::new(TokenKind::BangEqual, "!=".to_string(), line, column));
+                        tokens.push(Token::new(
+                            TokenKind::BangEqual,
+                            "!=".to_string(),
+                            line,
+                            column,
+                        ));
                     } else {
                         tokens.push(Token::new(TokenKind::Bang, "!".to_string(), line, column));
                     }
@@ -87,7 +97,12 @@ impl Lexer {
                     self.advance();
 
                     if self.match_char('=') {
-                        tokens.push(Token::new(TokenKind::LessEqual, "<=".to_string(), line, column));
+                        tokens.push(Token::new(
+                            TokenKind::LessEqual,
+                            "<=".to_string(),
+                            line,
+                            column,
+                        ));
                     } else {
                         tokens.push(Token::new(TokenKind::Less, "<".to_string(), line, column));
                     }
@@ -97,9 +112,19 @@ impl Lexer {
                     self.advance();
 
                     if self.match_char('=') {
-                        tokens.push(Token::new(TokenKind::GreaterEqual, ">=".to_string(), line, column));
+                        tokens.push(Token::new(
+                            TokenKind::GreaterEqual,
+                            ">=".to_string(),
+                            line,
+                            column,
+                        ));
                     } else {
-                        tokens.push(Token::new(TokenKind::Greater, ">".to_string(), line, column));
+                        tokens.push(Token::new(
+                            TokenKind::Greater,
+                            ">".to_string(),
+                            line,
+                            column,
+                        ));
                     }
                 }
 
@@ -107,11 +132,15 @@ impl Lexer {
                     self.advance();
 
                     if self.match_char('&') {
-                        tokens.push(Token::new(TokenKind::AndAnd, "&&".to_string(), line, column));
+                        tokens.push(Token::new(
+                            TokenKind::AndAnd,
+                            "&&".to_string(),
+                            line,
+                            column,
+                        ));
                     } else {
                         return Err(format!(
-                            "line {}, column {}: Expected '&' after '&'. Use &&.",
-                            line, column
+                            "line {line}, column {column}: Expected '&' after '&'. Use &&."
                         ));
                     }
                 }
@@ -123,8 +152,7 @@ impl Lexer {
                         tokens.push(Token::new(TokenKind::OrOr, "||".to_string(), line, column));
                     } else {
                         return Err(format!(
-                            "line {}, column {}: Expected '|' after '|'. Use ||.",
-                            line, column
+                            "line {line}, column {column}: Expected '|' after '|'. Use ||."
                         ));
                     }
                 }
@@ -151,12 +179,22 @@ impl Lexer {
 
                 '[' => {
                     self.advance();
-                    tokens.push(Token::new(TokenKind::LBracket, "[".to_string(), line, column));
+                    tokens.push(Token::new(
+                        TokenKind::LBracket,
+                        "[".to_string(),
+                        line,
+                        column,
+                    ));
                 }
 
                 ']' => {
                     self.advance();
-                    tokens.push(Token::new(TokenKind::RBracket, "]".to_string(), line, column));
+                    tokens.push(Token::new(
+                        TokenKind::RBracket,
+                        "]".to_string(),
+                        line,
+                        column,
+                    ));
                 }
 
                 ',' => {
@@ -171,7 +209,12 @@ impl Lexer {
 
                 ';' => {
                     self.advance();
-                    tokens.push(Token::new(TokenKind::Semicolon, ";".to_string(), line, column));
+                    tokens.push(Token::new(
+                        TokenKind::Semicolon,
+                        ";".to_string(),
+                        line,
+                        column,
+                    ));
                 }
 
                 '"' => {
@@ -188,8 +231,7 @@ impl Lexer {
 
                 other => {
                     return Err(format!(
-                        "line {}, column {}: Unexpected character '{}'.",
-                        line, column, other
+                        "line {line}, column {column}: Unexpected character '{other}'."
                     ));
                 }
             }
@@ -232,8 +274,7 @@ impl Lexer {
 
                 if self.is_at_end() {
                     return Err(format!(
-                        "line {}, column {}: Unterminated escape sequence.",
-                        start_line, start_column
+                        "line {start_line}, column {start_column}: Unterminated escape sequence."
                     ));
                 }
 
@@ -262,8 +303,7 @@ impl Lexer {
         }
 
         Err(format!(
-            "line {}, column {}: Unterminated string.",
-            start_line, start_column
+            "line {start_line}, column {start_column}: Unterminated string."
         ))
     }
 
@@ -278,10 +318,7 @@ impl Lexer {
         }
 
         let parsed = value.parse::<i64>().map_err(|error| {
-            format!(
-                "line {}, column {}: Invalid integer '{}': {}",
-                start_line, start_column, value, error
-            )
+            format!("line {start_line}, column {start_column}: Invalid integer '{value}': {error}")
         })?;
 
         Ok(Token::new(

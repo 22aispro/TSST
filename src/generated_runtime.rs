@@ -1,5 +1,6 @@
-pub fn runtime_source() -> &'static str {
-    r#"
+pub fn runtime_source(include_gui: bool) -> String {
+    let source = r#"
+#![allow(dead_code, unused_mut)]
 use std::collections::HashMap;
 use std::io::{self, Write};
 use std::sync::{Mutex, OnceLock};
@@ -330,6 +331,92 @@ fn builtin_contains(value: RtValue, needle: RtValue) -> Result<RtValue, String> 
     let needle = expect_str(needle, "contains needle")?;
 
     Ok(RtValue::Bool(value.contains(&needle)))
+}
+
+fn os_command_args(program: RtValue, args: RtValue, context: &str) -> Result<(String, Vec<String>), String> {
+    let program = expect_str(program, &format!("{} program", context))?;
+    let args = match args {
+        RtValue::Array(values) => values.into_iter().map(|value| value.to_output()).collect(),
+        other => return Err(format!("{} arguments must be arr, got {}.", context, other.type_name())),
+    };
+    Ok((program, args))
+}
+
+fn builtin_os_run(program: RtValue, args: RtValue) -> Result<RtValue, String> {
+    let (program, args) = os_command_args(program, args, "os_run")?;
+    let status = std::process::Command::new(program)
+        .args(args)
+        .status()
+        .map_err(|error| format!("os_run() failed to start process: {}", error))?;
+    Ok(RtValue::Int(status.code().unwrap_or(-1) as i64))
+}
+
+fn builtin_os_capture(program: RtValue, args: RtValue) -> Result<RtValue, String> {
+    let (program, args) = os_command_args(program, args, "os_capture")?;
+    let output = std::process::Command::new(program)
+        .args(args)
+        .output()
+        .map_err(|error| format!("os_capture() failed to start process: {}", error))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        return Err(format!(
+            "os_capture() process exited with code {}: {}",
+            output.status.code().unwrap_or(-1),
+            stderr
+        ));
+    }
+
+    Ok(RtValue::Str(String::from_utf8_lossy(&output.stdout).to_string()))
+}
+
+fn builtin_os_get_env(name: RtValue) -> Result<RtValue, String> {
+    let name = expect_str(name, "os_get_env name")?;
+    Ok(RtValue::Str(std::env::var(name).unwrap_or_default()))
+}
+
+fn builtin_os_set_env(name: RtValue, value: RtValue) -> Result<RtValue, String> {
+    let name = expect_str(name, "os_set_env name")?;
+    let value = expect_str(value, "os_set_env value")?;
+    if name.contains('\0') || value.contains('\0') {
+        return Err("os_set_env() values cannot contain NUL bytes.".to_string());
+    }
+    std::env::set_var(name, value);
+    Ok(RtValue::Bool(true))
+}
+
+fn builtin_os_read_file(path: RtValue) -> Result<RtValue, String> {
+    let path = expect_str(path, "os_read_file path")?;
+    std::fs::read_to_string(&path)
+        .map(RtValue::Str)
+        .map_err(|error| format!("os_read_file() failed for '{}': {}", path, error))
+}
+
+fn builtin_os_write_file(path: RtValue, content: RtValue) -> Result<RtValue, String> {
+    let path = expect_str(path, "os_write_file path")?;
+    let content = expect_str(content, "os_write_file content")?;
+    std::fs::write(&path, content)
+        .map(|_| RtValue::Bool(true))
+        .map_err(|error| format!("os_write_file() failed for '{}': {}", path, error))
+}
+
+fn builtin_os_exists(path: RtValue) -> Result<RtValue, String> {
+    let path = expect_str(path, "os_exists path")?;
+    Ok(RtValue::Bool(std::path::Path::new(&path).exists()))
+}
+
+fn builtin_os_sleep(milliseconds: RtValue) -> Result<RtValue, String> {
+    let milliseconds = expect_int(milliseconds, "os_sleep milliseconds")?;
+    if milliseconds < 0 {
+        return Err("os_sleep() duration cannot be negative.".to_string());
+    }
+    std::thread::sleep(std::time::Duration::from_millis(milliseconds as u64));
+    Ok(RtValue::Bool(true))
+}
+
+fn builtin_os_current_dir() -> Result<RtValue, String> {
+    let path = std::env::current_dir().map_err(|error| format!("os_current_dir() failed: {}", error))?;
+    Ok(RtValue::Str(path.to_string_lossy().to_string()))
 }
 
 #[derive(Debug, Clone)]
@@ -985,5 +1072,14 @@ fn tsst_gui_show() -> Result<RtValue, String> {
 
     Ok(RtValue::Bool(true))
 }
-"#
+"#;
+
+    if include_gui {
+        source.to_string()
+    } else {
+        source
+            .split_once("\n#[derive(Debug, Clone)]\nenum GuiElement")
+            .map(|(base, _)| base.replace("use std::sync::{Mutex, OnceLock};\n", ""))
+            .unwrap_or_else(|| source.to_string())
+    }
 }

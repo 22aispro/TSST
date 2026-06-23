@@ -5,11 +5,13 @@ mod interpreter;
 mod lexer;
 mod parser;
 mod token;
+mod typechecker;
 
 use compiler::Compiler;
 use interpreter::Interpreter;
 use lexer::Lexer;
 use parser::Parser;
+use typechecker::TypeChecker;
 
 use std::collections::HashSet;
 use std::env;
@@ -34,19 +36,22 @@ fn main() {
             let project_name = args.get(2).map(|value| value.as_str());
 
             if let Err(error) = init_project(project_name) {
-                eprintln!("Init error: {}", error);
+                eprintln!("Init error: {error}");
+                std::process::exit(1);
             }
         }
 
         "install" => {
             if let Err(error) = install_packages() {
-                eprintln!("Install error: {}", error);
+                eprintln!("Install error: {error}");
+                std::process::exit(1);
             }
         }
 
         "list" => {
             if let Err(error) = list_packages() {
-                eprintln!("List error: {}", error);
+                eprintln!("List error: {error}");
+                std::process::exit(1);
             }
         }
 
@@ -56,18 +61,20 @@ fn main() {
                 None => {
                     eprintln!("Remove error: Missing package name.");
                     eprintln!("Usage: tsst remove <package>");
-                    return;
+                    std::process::exit(1);
                 }
             };
 
             if let Err(error) = remove_package(package_name) {
-                eprintln!("Remove error: {}", error);
+                eprintln!("Remove error: {error}");
+                std::process::exit(1);
             }
         }
 
         "update" => {
             if let Err(error) = update_packages() {
-                eprintln!("Update error: {}", error);
+                eprintln!("Update error: {error}");
+                std::process::exit(1);
             }
         }
 
@@ -78,7 +85,8 @@ fn main() {
                 .unwrap_or_else(|| PathBuf::from("main.tsst"));
 
             if let Err(error) = build_file(file_path) {
-                eprintln!("Build error: {}", error);
+                eprintln!("Build error: {error}");
+                std::process::exit(1);
             }
         }
 
@@ -125,8 +133,8 @@ fn run_file(file_path: PathBuf) {
     let source = match read_source_with_imports(&file_path, &mut imported_files) {
         Ok(source) => source,
         Err(error) => {
-            eprintln!("Import error: {}", error);
-            return;
+            eprintln!("Import error: {error}");
+            std::process::exit(1);
         }
     };
 
@@ -135,8 +143,8 @@ fn run_file(file_path: PathBuf) {
     let tokens = match lexer.tokenize() {
         Ok(tokens) => tokens,
         Err(error) => {
-            eprintln!("Lexer error: {}", error);
-            return;
+            eprintln!("Lexer error: {error}");
+            std::process::exit(1);
         }
     };
 
@@ -145,15 +153,23 @@ fn run_file(file_path: PathBuf) {
     let program = match parser.parse_program() {
         Ok(program) => program,
         Err(error) => {
-            eprintln!("Parser error: {}", error);
-            return;
+            eprintln!("Parser error: {error}");
+            std::process::exit(1);
         }
     };
+
+    let mut typechecker = TypeChecker::new();
+
+    if let Err(error) = typechecker.check_program(&program) {
+        eprintln!("Type error: {error}");
+        std::process::exit(1);
+    }
 
     let mut interpreter = Interpreter::new();
 
     if let Err(error) = interpreter.run(&program) {
-        eprintln!("Runtime error: {}", error);
+        eprintln!("Runtime error: {error}");
+        std::process::exit(1);
     }
 }
 
@@ -163,12 +179,19 @@ fn build_file(file_path: PathBuf) -> Result<(), String> {
     let source = read_source_with_imports(&file_path, &mut imported_files)?;
 
     let mut lexer = Lexer::new(&source);
-    let tokens = lexer.tokenize().map_err(|error| format!("Lexer error: {}", error))?;
+    let tokens = lexer
+        .tokenize()
+        .map_err(|error| format!("Lexer error: {error}"))?;
 
     let mut parser = Parser::new(tokens);
     let program = parser
         .parse_program()
-        .map_err(|error| format!("Parser error: {}", error))?;
+        .map_err(|error| format!("Parser error: {error}"))?;
+
+    let mut typechecker = TypeChecker::new();
+    typechecker
+        .check_program(&program)
+        .map_err(|error| format!("Type error: {error}"))?;
 
     let mut compiler = Compiler::new();
     let rust_source = compiler.compile_program(&program)?;
@@ -187,22 +210,25 @@ fn build_file(file_path: PathBuf) -> Result<(), String> {
     let package_name = file_path
         .file_stem()
         .and_then(|value| value.to_str())
-        .unwrap_or("tsst_app")
-        .replace('-', "_");
+        .map(sanitize_package_name)
+        .unwrap_or_else(|| "tsst_app".to_string());
+
+    let gui_dependencies = if rust_source.contains("enum GuiElement") {
+        "\neframe = \"0.29\"\negui = \"0.29\"\n"
+    } else {
+        ""
+    };
 
     fs::write(
         rust_project.join("Cargo.toml"),
         format!(
             r#"[package]
-name = "{}"
+name = "{package_name}"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
-eframe = "0.29"
-egui = "0.29"
-"#,
-            package_name
+[dependencies]{gui_dependencies}
+"#
         ),
     )
     .map_err(|error| error.to_string())?;
@@ -221,8 +247,7 @@ egui = "0.29"
         .status()
         .map_err(|error| {
             format!(
-                "Failed to run cargo. Make sure Rust is installed and cargo is in PATH. {}",
-                error
+                "Failed to run cargo. Make sure Rust is installed and cargo is in PATH. {error}"
             )
         })?;
 
@@ -231,7 +256,7 @@ egui = "0.29"
     }
 
     let exe_name = if cfg!(windows) {
-        format!("{}.exe", package_name)
+        format!("{package_name}.exe")
     } else {
         package_name.clone()
     };
@@ -289,12 +314,11 @@ fn init_project(project_name: Option<&str>) -> Result<(), String> {
             &tsst_json,
             format!(
                 r#"{{
-  "name": "{}",
+  "name": "{name}",
   "version": "0.1.0",
   "dependencies": {{}}
 }}
-"#,
-                name
+"#
             ),
         )
         .map_err(|error| error.to_string())?;
@@ -309,9 +333,38 @@ fn init_project(project_name: Option<&str>) -> Result<(), String> {
     Ok(())
 }
 
+fn sanitize_package_name(name: &str) -> String {
+    let mut result: String = name
+        .chars()
+        .map(|value| {
+            if value.is_ascii_alphanumeric() || value == '_' {
+                value
+            } else {
+                '_'
+            }
+        })
+        .collect();
+
+    if result.is_empty() {
+        return "tsst_app".to_string();
+    }
+
+    if !result
+        .chars()
+        .next()
+        .is_some_and(|value| value.is_ascii_alphabetic() || value == '_')
+    {
+        result.insert(0, '_');
+    }
+
+    result
+}
+
 fn install_packages() -> Result<(), String> {
     let project_root = find_project_root(&env::current_dir().map_err(|error| error.to_string())?)
-        .ok_or_else(|| "Could not find tsst.json in this folder or any parent folder.".to_string())?;
+        .ok_or_else(|| {
+        "Could not find tsst.json in this folder or any parent folder.".to_string()
+    })?;
 
     let manifest_path = project_root.join("tsst.json");
     let manifest = fs::read_to_string(&manifest_path).map_err(|error| error.to_string())?;
@@ -340,7 +393,9 @@ fn install_packages() -> Result<(), String> {
             install_github_package(&dependency, &package_dir)?;
         } else if dependency.source.starts_with("path:") {
             install_path_package(&dependency, &package_dir, &project_root)?;
-        } else if dependency.source.starts_with("https://") || dependency.source.starts_with("http://") {
+        } else if dependency.source.starts_with("https://")
+            || dependency.source.starts_with("http://")
+        {
             install_git_url_package(&dependency, &package_dir)?;
         } else {
             return Err(format!(
@@ -359,7 +414,9 @@ fn install_packages() -> Result<(), String> {
 
 fn list_packages() -> Result<(), String> {
     let project_root = find_project_root(&env::current_dir().map_err(|error| error.to_string())?)
-        .ok_or_else(|| "Could not find tsst.json in this folder or any parent folder.".to_string())?;
+        .ok_or_else(|| {
+        "Could not find tsst.json in this folder or any parent folder.".to_string()
+    })?;
 
     let packages_dir = project_root.join("packages");
 
@@ -391,7 +448,7 @@ fn list_packages() -> Result<(), String> {
     println!("Installed packages:");
 
     for package in packages {
-        println!("  {}", package);
+        println!("  {package}");
     }
 
     Ok(())
@@ -399,12 +456,14 @@ fn list_packages() -> Result<(), String> {
 
 fn remove_package(package_name: &str) -> Result<(), String> {
     let project_root = find_project_root(&env::current_dir().map_err(|error| error.to_string())?)
-        .ok_or_else(|| "Could not find tsst.json in this folder or any parent folder.".to_string())?;
+        .ok_or_else(|| {
+        "Could not find tsst.json in this folder or any parent folder.".to_string()
+    })?;
 
     let package_dir = project_root.join("packages").join(package_name);
 
     if !package_dir.exists() {
-        return Err(format!("Package '{}' is not installed.", package_name));
+        return Err(format!("Package '{package_name}' is not installed."));
     }
 
     if !package_dir.is_dir() {
@@ -416,14 +475,16 @@ fn remove_package(package_name: &str) -> Result<(), String> {
 
     fs::remove_dir_all(&package_dir).map_err(|error| error.to_string())?;
 
-    println!("Removed package '{}'.", package_name);
+    println!("Removed package '{package_name}'.");
 
     Ok(())
 }
 
 fn update_packages() -> Result<(), String> {
     let project_root = find_project_root(&env::current_dir().map_err(|error| error.to_string())?)
-        .ok_or_else(|| "Could not find tsst.json in this folder or any parent folder.".to_string())?;
+        .ok_or_else(|| {
+        "Could not find tsst.json in this folder or any parent folder.".to_string()
+    })?;
 
     let packages_dir = project_root.join("packages");
 
@@ -441,7 +502,7 @@ fn update_packages() -> Result<(), String> {
 
 fn install_github_package(dependency: &Dependency, package_dir: &Path) -> Result<(), String> {
     let repo = dependency.source.trim_start_matches("github:");
-    let url = format!("https://github.com/{}.git", repo);
+    let url = format!("https://github.com/{repo}.git");
 
     println!("Installing {} from {}", dependency.name, url);
 
@@ -453,10 +514,7 @@ fn install_github_package(dependency: &Dependency, package_dir: &Path) -> Result
         .arg(package_dir)
         .status()
         .map_err(|error| {
-            format!(
-                "Failed to run git. Make sure Git is installed and available in PATH. {}",
-                error
-            )
+            format!("Failed to run git. Make sure Git is installed and available in PATH. {error}")
         })?;
 
     if !status.success() {
@@ -477,10 +535,7 @@ fn install_git_url_package(dependency: &Dependency, package_dir: &Path) -> Resul
         .arg(package_dir)
         .status()
         .map_err(|error| {
-            format!(
-                "Failed to run git. Make sure Git is installed and available in PATH. {}",
-                error
-            )
+            format!("Failed to run git. Make sure Git is installed and available in PATH. {error}")
         })?;
 
     if !status.success() {
@@ -506,7 +561,11 @@ fn install_path_package(
         ));
     }
 
-    println!("Installing {} from {}", dependency.name, source_dir.display());
+    println!(
+        "Installing {} from {}",
+        dependency.name,
+        source_dir.display()
+    );
 
     copy_dir_all(&source_dir, package_dir)?;
 
@@ -575,13 +634,13 @@ fn parse_dependencies(manifest: &str) -> Result<Vec<Dependency>, String> {
         let colon_index = object[name_end + 1..]
             .find(':')
             .map(|value| value + name_end + 1)
-            .ok_or_else(|| format!("Expected ':' after dependency '{}'.", name))?;
+            .ok_or_else(|| format!("Expected ':' after dependency '{name}'."))?;
 
         let source_start = find_next_quote(object, colon_index + 1)
-            .ok_or_else(|| format!("Expected source string for dependency '{}'.", name))?;
+            .ok_or_else(|| format!("Expected source string for dependency '{name}'."))?;
 
         let source_end = find_string_end(object, source_start + 1)
-            .ok_or_else(|| format!("Invalid source string for dependency '{}'.", name))?;
+            .ok_or_else(|| format!("Invalid source string for dependency '{name}'."))?;
 
         let source = object[source_start + 1..source_end].to_string();
 
@@ -715,9 +774,12 @@ fn parse_use_import(line: &str) -> Option<String> {
 }
 
 fn resolve_import_path(importing_file: &Path, import_path: &str) -> Result<PathBuf, String> {
-    let importing_dir = importing_file
-        .parent()
-        .ok_or_else(|| format!("Could not get parent folder for '{}'.", importing_file.display()))?;
+    let importing_dir = importing_file.parent().ok_or_else(|| {
+        format!(
+            "Could not get parent folder for '{}'.",
+            importing_file.display()
+        )
+    })?;
 
     if import_path.contains(':') && !import_path.contains("://") {
         return resolve_package_colon_import(importing_file, import_path);
@@ -736,19 +798,22 @@ fn resolve_import_path(importing_file: &Path, import_path: &str) -> Result<PathB
     normalize_file_path(&relative_path)
 }
 
-fn resolve_package_colon_import(importing_file: &Path, import_path: &str) -> Result<PathBuf, String> {
+fn resolve_package_colon_import(
+    importing_file: &Path,
+    import_path: &str,
+) -> Result<PathBuf, String> {
     let mut parts = import_path.splitn(2, ':');
 
     let package_name = parts
         .next()
-        .ok_or_else(|| format!("Invalid package import '{}'.", import_path))?;
+        .ok_or_else(|| format!("Invalid package import '{import_path}'."))?;
 
     let module_name = parts
         .next()
-        .ok_or_else(|| format!("Invalid package import '{}'.", import_path))?;
+        .ok_or_else(|| format!("Invalid package import '{import_path}'."))?;
 
     if package_name.trim().is_empty() || module_name.trim().is_empty() {
-        return Err(format!("Invalid package import '{}'.", import_path));
+        return Err(format!("Invalid package import '{import_path}'."));
     }
 
     let project_root = find_project_root_from_file(importing_file)
@@ -757,10 +822,18 @@ fn resolve_package_colon_import(importing_file: &Path, import_path: &str) -> Res
     let module_path = module_name.replace('.', "/");
     let module_path = ensure_tsst_extension(&module_path);
 
-    normalize_file_path(&project_root.join("packages").join(package_name).join(module_path))
+    normalize_file_path(
+        &project_root
+            .join("packages")
+            .join(package_name)
+            .join(module_path),
+    )
 }
 
-fn resolve_package_slash_import(importing_file: &Path, import_path: &str) -> Result<PathBuf, String> {
+fn resolve_package_slash_import(
+    importing_file: &Path,
+    import_path: &str,
+) -> Result<PathBuf, String> {
     let project_root = find_project_root_from_file(importing_file)
         .ok_or_else(|| "Could not find tsst.json for package import.".to_string())?;
 
@@ -780,19 +853,14 @@ fn ensure_tsst_extension(path: &str) -> String {
     if path.ends_with(".tsst") {
         path.to_string()
     } else {
-        format!("{}.tsst", path)
+        format!("{path}.tsst")
     }
 }
 
 fn normalize_file_path(path: &Path) -> Result<PathBuf, String> {
     if path.exists() {
-        fs::canonicalize(path).map_err(|error| {
-            format!(
-                "Could not normalize path '{}': {}",
-                path.display(),
-                error
-            )
-        })
+        fs::canonicalize(path)
+            .map_err(|error| format!("Could not normalize path '{}': {}", path.display(), error))
     } else {
         Err(format!("File does not exist: {}", path.display()))
     }
@@ -814,5 +882,130 @@ fn find_project_root(start: &Path) -> Option<PathBuf> {
         if !current.pop() {
             return None;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn parse(source: &str) -> ast::Program {
+        let tokens = Lexer::new(source).tokenize().expect("source should lex");
+        Parser::new(tokens)
+            .parse_program()
+            .expect("source should parse")
+    }
+
+    #[test]
+    fn hello_world_typechecks_and_runs() {
+        let program = parse(r#"pub fcn main () { cons!("Hello"); }"#);
+        TypeChecker::new()
+            .check_program(&program)
+            .expect("program should typecheck");
+        Interpreter::new()
+            .run(&program)
+            .expect("program should run");
+    }
+
+    #[test]
+    fn typechecker_rejects_errors_in_unreachable_branches() {
+        let program = parse(
+            r#"pub fcn main () {
+                if false { cre_int value = "wrong"; }
+            }"#,
+        );
+        let error = TypeChecker::new()
+            .check_program(&program)
+            .expect_err("type mismatch should be caught before execution");
+        assert!(error.contains("expected int, got str"));
+    }
+
+    #[test]
+    fn block_variables_do_not_escape_their_scope() {
+        let program = parse(
+            r#"pub fcn main () {
+                if true { cre_int hidden = 7; }
+                cons!(hidden);
+            }"#,
+        );
+        let error = TypeChecker::new()
+            .check_program(&program)
+            .expect_err("block variable should be out of scope");
+        assert!(error.contains("Unknown variable 'hidden'"));
+    }
+
+    #[test]
+    fn missing_and_duplicate_main_functions_are_rejected() {
+        let missing = parse("fcn helper () {}");
+        assert!(TypeChecker::new().check_program(&missing).is_err());
+
+        let duplicate = parse("pub fcn main () {} pub fcn main () {}");
+        assert!(TypeChecker::new().check_program(&duplicate).is_err());
+    }
+
+    #[test]
+    fn typed_functions_must_return_on_every_branch() {
+        let program = parse(
+            r#"fcn maybe (cre_bool condition) -> int {
+                if condition { return 1; }
+            }
+            pub fcn main () {}"#,
+        );
+        let error = TypeChecker::new()
+            .check_program(&program)
+            .expect_err("conditional return is not guaranteed");
+        assert!(error.contains("on every path"));
+    }
+
+    #[test]
+    fn non_gui_programs_generate_a_dependency_free_runtime() {
+        let program = parse(r#"pub fcn main () { cons!("small"); }"#);
+        let generated = Compiler::new()
+            .compile_program(&program)
+            .expect("program should compile");
+        assert!(!generated.contains("enum GuiElement"));
+        assert!(!generated.contains("eframe::"));
+    }
+
+    #[test]
+    fn classic_for_continue_updates_before_continuing() {
+        let program = parse(
+            r#"pub fcn main () {
+                for (cre_int i = 0; i < 3; i = i + 1) {
+                    if i == 1 { continue; }
+                }
+            }"#,
+        );
+        let generated = Compiler::new()
+            .compile_program(&program)
+            .expect("program should compile");
+        let continue_position = generated
+            .find("continue;")
+            .expect("continue should compile");
+        let before_continue = &generated[..continue_position];
+        assert!(before_continue.rfind("ensure_same_type").is_some());
+    }
+
+    #[test]
+    fn os_builtins_typecheck_run_and_compile() {
+        let program = parse(
+            r#"pub fcn main () {
+                cre_str directory = os_current_dir();
+                cre_bool exists = os_exists(directory);
+                cons!(exists);
+            }"#,
+        );
+        TypeChecker::new()
+            .check_program(&program)
+            .expect("OS calls should typecheck");
+        Interpreter::new()
+            .run(&program)
+            .expect("OS calls should run");
+
+        let generated = Compiler::new()
+            .compile_program(&program)
+            .expect("OS calls should compile");
+        assert!(generated.contains("builtin_os_current_dir()?"));
+        assert!(generated.contains("builtin_os_exists"));
     }
 }

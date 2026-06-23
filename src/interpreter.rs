@@ -89,9 +89,11 @@ impl Interpreter {
             }
         }
 
-        if self.functions.contains_key("main") {
-            self.call_function_by_name("main", Vec::new(), program)?;
+        if !self.functions.contains_key("main") {
+            return Err("No main function exists.".to_string());
         }
+
+        self.call_function_by_name("main", Vec::new(), program)?;
 
         Ok(())
     }
@@ -147,6 +149,17 @@ impl Interpreter {
         }
 
         Ok(ExecSignal::None)
+    }
+
+    fn execute_scoped_block(
+        &mut self,
+        body: &[Stmt],
+        program: &Program,
+    ) -> Result<ExecSignal, String> {
+        self.scopes.push(HashMap::new());
+        let result = self.execute_block(body, program);
+        self.scopes.pop();
+        result
     }
 
     fn run_var_decl(&mut self, var_decl: &VarDecl, program: &Program) -> Result<(), String> {
@@ -208,9 +221,7 @@ impl Interpreter {
                 let target_name = match &macro_call.args[0] {
                     Expr::Ident(name) => name.clone(),
                     _ => {
-                        return Err(
-                            "push!() first argument must be an array variable.".to_string()
-                        );
+                        return Err("push!() first argument must be an array variable.".to_string());
                     }
                 };
 
@@ -218,7 +229,7 @@ impl Interpreter {
 
                 let target = self
                     .get_var_mut(&target_name)
-                    .ok_or_else(|| format!("Undefined array variable '{}'.", target_name))?;
+                    .ok_or_else(|| format!("Undefined array variable '{target_name}'."))?;
 
                 match target {
                     Value::Array(values) => {
@@ -249,13 +260,16 @@ impl Interpreter {
                 let key_text = match key {
                     Value::Str(value) => value,
                     other => {
-                        return Err(format!("set!() key must be str, got {}.", other.type_name()));
+                        return Err(format!(
+                            "set!() key must be str, got {}.",
+                            other.type_name()
+                        ));
                     }
                 };
 
                 let target = self
                     .get_var_mut(&target_name)
-                    .ok_or_else(|| format!("Undefined dictionary variable '{}'.", target_name))?;
+                    .ok_or_else(|| format!("Undefined dictionary variable '{target_name}'."))?;
 
                 match target {
                     Value::Dict(values) => {
@@ -266,7 +280,7 @@ impl Interpreter {
                 }
             }
 
-            other => Err(format!("Unknown macro '{}!'.", other)),
+            other => Err(format!("Unknown macro '{other}!'.")),
         }
     }
 
@@ -290,10 +304,10 @@ impl Interpreter {
         let condition = self.eval_expr(&if_stmt.condition, program)?;
 
         match condition {
-            Value::Bool(true) => self.execute_block(&if_stmt.then_body, program),
+            Value::Bool(true) => self.execute_scoped_block(&if_stmt.then_body, program),
             Value::Bool(false) => {
                 if let Some(else_body) = &if_stmt.else_body {
-                    self.execute_block(else_body, program)
+                    self.execute_scoped_block(else_body, program)
                 } else {
                     Ok(ExecSignal::None)
                 }
@@ -324,7 +338,7 @@ impl Interpreter {
                 }
             }
 
-            match self.execute_block(&while_stmt.body, program)? {
+            match self.execute_scoped_block(&while_stmt.body, program)? {
                 ExecSignal::None => {}
                 ExecSignal::Break => break,
                 ExecSignal::Continue => continue,
@@ -337,43 +351,40 @@ impl Interpreter {
 
     fn run_for(&mut self, for_stmt: &ForStmt, program: &Program) -> Result<ExecSignal, String> {
         self.scopes.push(HashMap::new());
+        let result = (|| {
+            self.run_var_decl(&for_stmt.initializer, program)?;
 
-        self.run_var_decl(&for_stmt.initializer, program)?;
+            loop {
+                let condition = self.eval_expr(&for_stmt.condition, program)?;
 
-        loop {
-            let condition = self.eval_expr(&for_stmt.condition, program)?;
-
-            match condition {
-                Value::Bool(true) => {}
-                Value::Bool(false) => break,
-                other => {
-                    self.scopes.pop();
-                    return Err(format!(
-                        "for condition must be bool, got {}.",
-                        other.type_name()
-                    ));
+                match condition {
+                    Value::Bool(true) => {}
+                    Value::Bool(false) => break,
+                    other => {
+                        return Err(format!(
+                            "for condition must be bool, got {}.",
+                            other.type_name()
+                        ));
+                    }
                 }
+
+                match self.execute_scoped_block(&for_stmt.body, program)? {
+                    ExecSignal::None => {}
+                    ExecSignal::Break => break,
+                    ExecSignal::Continue => {
+                        self.run_assignment(&for_stmt.update, program)?;
+                        continue;
+                    }
+                    signal @ ExecSignal::Return(_) => return Ok(signal),
+                }
+
+                self.run_assignment(&for_stmt.update, program)?;
             }
 
-            match self.execute_block(&for_stmt.body, program)? {
-                ExecSignal::None => {}
-                ExecSignal::Break => break,
-                ExecSignal::Continue => {
-                    self.run_assignment(&for_stmt.update, program)?;
-                    continue;
-                }
-                signal @ ExecSignal::Return(_) => {
-                    self.scopes.pop();
-                    return Ok(signal);
-                }
-            }
-
-            self.run_assignment(&for_stmt.update, program)?;
-        }
-
+            Ok(ExecSignal::None)
+        })();
         self.scopes.pop();
-
-        Ok(ExecSignal::None)
+        result
     }
 
     fn run_for_each(
@@ -398,9 +409,9 @@ impl Interpreter {
                     self.scopes.push(HashMap::new());
                     self.define_var(for_each_stmt.item_name.clone(), value);
 
-                    let signal = self.execute_block(&for_each_stmt.body, program)?;
-
+                    let signal = self.execute_block(&for_each_stmt.body, program);
                     self.scopes.pop();
+                    let signal = signal?;
 
                     match signal {
                         ExecSignal::None => {}
@@ -432,9 +443,9 @@ impl Interpreter {
                     self.scopes.push(HashMap::new());
                     self.define_var(for_each_stmt.item_name.clone(), value);
 
-                    let signal = self.execute_block(&for_each_stmt.body, program)?;
-
+                    let signal = self.execute_block(&for_each_stmt.body, program);
                     self.scopes.pop();
+                    let signal = signal?;
 
                     match signal {
                         ExecSignal::None => {}
@@ -473,7 +484,7 @@ impl Interpreter {
 
             Expr::Ident(name) => self
                 .get_var(name)
-                .ok_or_else(|| format!("Undefined variable '{}'.", name)),
+                .ok_or_else(|| format!("Undefined variable '{name}'.")),
 
             Expr::ArrayLiteral(values) => {
                 let mut result = Vec::new();
@@ -597,13 +608,13 @@ impl Interpreter {
                 values
                     .get(index as usize)
                     .cloned()
-                    .ok_or_else(|| format!("Array index out of bounds: {}", index))
+                    .ok_or_else(|| format!("Array index out of bounds: {index}"))
             }
 
             (Value::Dict(values), Value::Str(key)) => values
                 .get(&key)
                 .cloned()
-                .ok_or_else(|| format!("Dictionary key not found: '{}'.", key)),
+                .ok_or_else(|| format!("Dictionary key not found: '{key}'.")),
 
             (Value::Array(_), other) => Err(format!(
                 "Array index must be int, got {}.",
@@ -615,10 +626,7 @@ impl Interpreter {
                 other.type_name()
             )),
 
-            (other, _) => Err(format!(
-                "Cannot index value of type {}.",
-                other.type_name()
-            )),
+            (other, _) => Err(format!("Cannot index value of type {}.", other.type_name())),
         }
     }
 
@@ -632,7 +640,7 @@ impl Interpreter {
             }
             (Value::Int(a), BinaryOp::Div, Value::Int(b)) => Ok(Value::Int(a / b)),
 
-            (Value::Str(a), BinaryOp::Add, Value::Str(b)) => Ok(Value::Str(format!("{}{}", a, b))),
+            (Value::Str(a), BinaryOp::Add, Value::Str(b)) => Ok(Value::Str(format!("{a}{b}"))),
             (Value::Str(a), BinaryOp::Add, b) => Ok(Value::Str(format!("{}{}", a, b.to_output()))),
             (a, BinaryOp::Add, Value::Str(b)) => Ok(Value::Str(format!("{}{}", a.to_output(), b))),
 
@@ -667,11 +675,11 @@ impl Interpreter {
             .functions
             .get(name)
             .copied()
-            .ok_or_else(|| format!("Undefined function '{}'.", name))?;
+            .ok_or_else(|| format!("Undefined function '{name}'."))?;
 
         let function = match &program.items[index] {
             Item::Function(function) => function,
-            _ => return Err(format!("Internal error: '{}' is not a function.", name)),
+            _ => return Err(format!("Internal error: '{name}' is not a function.")),
         };
 
         self.call_user_function(function, args, program)
@@ -707,7 +715,7 @@ impl Interpreter {
                     }
                 };
 
-                print!("{}", prompt);
+                print!("{prompt}");
                 io::stdout().flush().map_err(|error| error.to_string())?;
 
                 let mut input = String::new();
@@ -734,7 +742,7 @@ impl Interpreter {
                     }
                 };
 
-                print!("{}", prompt);
+                print!("{prompt}");
                 io::stdout().flush().map_err(|error| error.to_string())?;
 
                 let mut input = String::new();
@@ -746,7 +754,7 @@ impl Interpreter {
                 let trimmed = input.trim();
 
                 let number = trimmed.parse::<i64>().map_err(|_| {
-                    format!("input_int() expected a valid integer, got '{}'.", trimmed)
+                    format!("input_int() expected a valid integer, got '{trimmed}'.")
                 })?;
 
                 Ok(Some(Value::Int(number)))
@@ -803,8 +811,170 @@ impl Interpreter {
                 }
             }
 
+            "os_run" => {
+                let (program, command_args) = Self::os_command_args(args, "os_run")?;
+                let status = std::process::Command::new(program)
+                    .args(command_args)
+                    .status()
+                    .map_err(|error| format!("os_run() failed to start process: {error}"))?;
+                Ok(Some(Value::Int(status.code().unwrap_or(-1) as i64)))
+            }
+
+            "os_capture" => {
+                let (program, command_args) = Self::os_command_args(args, "os_capture")?;
+                let output = std::process::Command::new(program)
+                    .args(command_args)
+                    .output()
+                    .map_err(|error| format!("os_capture() failed to start process: {error}"))?;
+
+                if !output.status.success() {
+                    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+                    return Err(format!(
+                        "os_capture() process exited with code {}: {}",
+                        output.status.code().unwrap_or(-1),
+                        stderr
+                    ));
+                }
+
+                Ok(Some(Value::Str(
+                    String::from_utf8_lossy(&output.stdout).to_string(),
+                )))
+            }
+
+            "os_get_env" => match args {
+                [Value::Str(name)] => Ok(Some(Value::Str(std::env::var(name).unwrap_or_default()))),
+                [other] => Err(format!(
+                    "os_get_env() expected str, got {}.",
+                    other.type_name()
+                )),
+                _ => Err(format!(
+                    "os_get_env() expects 1 argument, got {}.",
+                    args.len()
+                )),
+            },
+
+            "os_set_env" => match args {
+                [Value::Str(name), Value::Str(value)] => {
+                    if name.contains('\0') || value.contains('\0') {
+                        return Err("os_set_env() values cannot contain NUL bytes.".to_string());
+                    }
+                    std::env::set_var(name, value);
+                    Ok(Some(Value::Bool(true)))
+                }
+                [name, value] => Err(format!(
+                    "os_set_env() expected str, str, got {}, {}.",
+                    name.type_name(),
+                    value.type_name()
+                )),
+                _ => Err(format!(
+                    "os_set_env() expects 2 arguments, got {}.",
+                    args.len()
+                )),
+            },
+
+            "os_read_file" => match args {
+                [Value::Str(path)] => std::fs::read_to_string(path)
+                    .map(Value::Str)
+                    .map(Some)
+                    .map_err(|error| format!("os_read_file() failed for '{path}': {error}")),
+                [other] => Err(format!(
+                    "os_read_file() expected str, got {}.",
+                    other.type_name()
+                )),
+                _ => Err(format!(
+                    "os_read_file() expects 1 argument, got {}.",
+                    args.len()
+                )),
+            },
+
+            "os_write_file" => match args {
+                [Value::Str(path), Value::Str(content)] => std::fs::write(path, content)
+                    .map(|_| Some(Value::Bool(true)))
+                    .map_err(|error| format!("os_write_file() failed for '{path}': {error}")),
+                [path, content] => Err(format!(
+                    "os_write_file() expected str, str, got {}, {}.",
+                    path.type_name(),
+                    content.type_name()
+                )),
+                _ => Err(format!(
+                    "os_write_file() expects 2 arguments, got {}.",
+                    args.len()
+                )),
+            },
+
+            "os_exists" => match args {
+                [Value::Str(path)] => Ok(Some(Value::Bool(std::path::Path::new(path).exists()))),
+                [other] => Err(format!(
+                    "os_exists() expected str, got {}.",
+                    other.type_name()
+                )),
+                _ => Err(format!(
+                    "os_exists() expects 1 argument, got {}.",
+                    args.len()
+                )),
+            },
+
+            "os_sleep" => match args {
+                [Value::Int(milliseconds)] if *milliseconds >= 0 => {
+                    std::thread::sleep(std::time::Duration::from_millis(*milliseconds as u64));
+                    Ok(Some(Value::Bool(true)))
+                }
+                [Value::Int(_)] => Err("os_sleep() duration cannot be negative.".to_string()),
+                [other] => Err(format!(
+                    "os_sleep() expected int, got {}.",
+                    other.type_name()
+                )),
+                _ => Err(format!(
+                    "os_sleep() expects 1 argument, got {}.",
+                    args.len()
+                )),
+            },
+
+            "os_current_dir" => {
+                if !args.is_empty() {
+                    return Err(format!(
+                        "os_current_dir() expects 0 arguments, got {}.",
+                        args.len()
+                    ));
+                }
+                let path = std::env::current_dir()
+                    .map_err(|error| format!("os_current_dir() failed: {error}"))?;
+                Ok(Some(Value::Str(path.to_string_lossy().to_string())))
+            }
+
             _ => Ok(None),
         }
+    }
+
+    fn os_command_args(args: &[Value], context: &str) -> Result<(String, Vec<String>), String> {
+        if args.len() != 2 {
+            return Err(format!(
+                "{context}() expects 2 arguments, got {}.",
+                args.len()
+            ));
+        }
+
+        let program = match &args[0] {
+            Value::Str(value) => value.clone(),
+            other => {
+                return Err(format!(
+                    "{context}() program must be str, got {}.",
+                    other.type_name()
+                ))
+            }
+        };
+
+        let command_args = match &args[1] {
+            Value::Array(values) => values.iter().map(Value::to_output).collect(),
+            other => {
+                return Err(format!(
+                    "{context}() arguments must be arr, got {}.",
+                    other.type_name()
+                ))
+            }
+        };
+
+        Ok((program, command_args))
     }
 
     fn call_user_function(
@@ -840,9 +1010,9 @@ impl Interpreter {
             self.define_var(param.name.clone(), value);
         }
 
-        let signal = self.execute_block(&function.body, program)?;
-
+        let signal = self.execute_block(&function.body, program);
         self.scopes.pop();
+        let signal = signal?;
 
         match signal {
             ExecSignal::Return(value) => {
@@ -912,7 +1082,7 @@ impl Interpreter {
             }
         }
 
-        Err(format!("Undefined variable '{}'.", name))
+        Err(format!("Undefined variable '{name}'."))
     }
 
     fn type_matches(&self, expected: &str, value: &Value) -> bool {

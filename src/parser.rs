@@ -159,7 +159,10 @@ impl Parser {
 
         let value = self.parse_expr()?;
 
-        self.consume(&TokenKind::Semicolon, "Expected ';' after variable declaration.")?;
+        self.consume(
+            &TokenKind::Semicolon,
+            "Expected ';' after variable declaration.",
+        )?;
 
         Ok(VarDecl { ty, name, value })
     }
@@ -217,11 +220,17 @@ impl Parser {
             value: init_value,
         };
 
-        self.consume(&TokenKind::Semicolon, "Expected ';' after for-loop initializer.")?;
+        self.consume(
+            &TokenKind::Semicolon,
+            "Expected ';' after for-loop initializer.",
+        )?;
 
         let condition = self.parse_expr()?;
 
-        self.consume(&TokenKind::Semicolon, "Expected ';' after for-loop condition.")?;
+        self.consume(
+            &TokenKind::Semicolon,
+            "Expected ';' after for-loop condition.",
+        )?;
 
         let update_name = self.consume_ident("Expected update variable name.")?;
         self.consume(&TokenKind::Equal, "Expected '=' in for-loop update.")?;
@@ -713,12 +722,12 @@ impl Parser {
     fn describe_current(&self) -> String {
         match self.current_kind() {
             TokenKind::Eof => "EOF".to_string(),
-            TokenKind::Ident(value) => format!("identifier '{}'", value),
-            TokenKind::Int(value) => format!("integer '{}'", value),
-            TokenKind::Str(value) => format!("string \"{}\"", value),
-            TokenKind::Bool(value) => format!("boolean '{}'", value),
-            TokenKind::Type(value) => format!("type '{}'", value),
-            other => format!("{:?}", other),
+            TokenKind::Ident(value) => format!("identifier '{value}'"),
+            TokenKind::Int(value) => format!("integer '{value}'"),
+            TokenKind::Str(value) => format!("string \"{value}\""),
+            TokenKind::Bool(value) => format!("boolean '{value}'"),
+            TokenKind::Type(value) => format!("type '{value}'"),
+            other => format!("{other:?}"),
         }
     }
 }

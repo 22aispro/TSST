@@ -11,6 +11,7 @@ pub enum Item {
 
 #[derive(Debug, Clone)]
 pub struct Function {
+    #[allow(dead_code)]
     pub is_pub: bool,
     pub name: String,
     pub params: Vec<Param>,

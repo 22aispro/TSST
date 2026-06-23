@@ -264,6 +264,60 @@
     "insertText": "cre_str ${1:choice} = lower(trim(input_str(\"${2:Choice: \")));"
   },
   {
+    "label": "os_run",
+    "kind": "function",
+    "detail": "Run a program and return its exit code",
+    "insertText": "os_run(${1:\"program\"}, [${2}])"
+  },
+  {
+    "label": "os_capture",
+    "kind": "function",
+    "detail": "Run a program and capture standard output",
+    "insertText": "os_capture(${1:\"program\"}, [${2}])"
+  },
+  {
+    "label": "os_read_file",
+    "kind": "function",
+    "detail": "Read a UTF-8 text file",
+    "insertText": "os_read_file(${1:\"path\"})"
+  },
+  {
+    "label": "os_write_file",
+    "kind": "function",
+    "detail": "Write a UTF-8 text file",
+    "insertText": "os_write_file(${1:\"path\"}, ${2:\"content\"})"
+  },
+  {
+    "label": "os_current_dir",
+    "kind": "function",
+    "detail": "Get the current working directory",
+    "insertText": "os_current_dir()"
+  },
+  {
+    "label": "os_get_env",
+    "kind": "function",
+    "detail": "Read an environment variable",
+    "insertText": "os_get_env(${1:\"NAME\"})"
+  },
+  {
+    "label": "os_set_env",
+    "kind": "function",
+    "detail": "Set an environment variable",
+    "insertText": "os_set_env(${1:\"NAME\"}, ${2:\"value\"})"
+  },
+  {
+    "label": "os_exists",
+    "kind": "function",
+    "detail": "Check whether a file or folder exists",
+    "insertText": "os_exists(${1:\"path\"})"
+  },
+  {
+    "label": "os_sleep",
+    "kind": "function",
+    "detail": "Pause for milliseconds",
+    "insertText": "os_sleep(${1:500})"
+  },
+  {
     "label": "calculator",
     "kind": "snippet",
     "detail": "interactive calculator starter",

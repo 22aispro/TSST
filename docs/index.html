@@ -34,6 +34,7 @@
         <a href="#dictionaries">Dictionaries</a>
         <a href="#imports">Imports</a>
         <a href="#builtins">Built-ins</a>
+        <a href="#os">OS Access</a>
 
         <p>Packages</p>
         <a href="#packages">Package Manager</a>
@@ -458,6 +459,37 @@ pub fcn main () {
               <h3><code>set!(dict, key, value)</code></h3>
               <p>Sets a dictionary key to a value.</p>
             </article>
+          </div>
+        </section>
+
+        <section class="section" id="os">
+          <div class="section-heading">
+            <p class="kicker">Operating System</p>
+            <h2>Files, processes, environment, and timing</h2>
+          </div>
+
+          <p class="lead">
+            Process calls receive an argument array directly; TSST does not pass commands through a shell.
+          </p>
+
+          <pre><code class="language-tsst">pub fcn main () {
+    cre_str output = os_capture("git", ["--version"]);
+    cons!(output);
+
+    os_write_file("hello.txt", "Hello from TSST!");
+    cons!(os_read_file("hello.txt"));
+}</code></pre>
+
+          <div class="api-list">
+            <article><h3><code>os_run(program, args)</code></h3><p>Runs a program and returns its exit code.</p></article>
+            <article><h3><code>os_capture(program, args)</code></h3><p>Runs a program and returns standard output.</p></article>
+            <article><h3><code>os_get_env(name)</code></h3><p>Reads an environment variable, or returns an empty string.</p></article>
+            <article><h3><code>os_set_env(name, value)</code></h3><p>Sets an environment variable for the current process.</p></article>
+            <article><h3><code>os_read_file(path)</code></h3><p>Reads a UTF-8 text file.</p></article>
+            <article><h3><code>os_write_file(path, content)</code></h3><p>Writes a UTF-8 text file.</p></article>
+            <article><h3><code>os_exists(path)</code></h3><p>Checks whether a file or folder exists.</p></article>
+            <article><h3><code>os_sleep(milliseconds)</code></h3><p>Pauses execution.</p></article>
+            <article><h3><code>os_current_dir()</code></h3><p>Returns the current working directory.</p></article>
           </div>
         </section>
 

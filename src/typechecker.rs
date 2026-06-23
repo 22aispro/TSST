@@ -38,14 +38,18 @@ impl TypeChecker {
         self.collect_functions(program)?;
 
         for item in &program.items {
-            match item {
-                Item::VarDecl(var_decl) => {
-                    self.check_var_decl(var_decl)?;
-                }
+            if let Item::VarDecl(var_decl) = item {
+                self.check_var_decl(var_decl)?;
+                return Err(format!(
+                    "Top-level variable '{}' is not supported; declare it inside a function",
+                    var_decl.name
+                ));
+            }
+        }
 
-                Item::Function(function) => {
-                    self.check_function(function)?;
-                }
+        for item in &program.items {
+            if let Item::Function(function) = item {
+                self.check_function(function)?;
             }
         }
 
@@ -80,6 +84,15 @@ impl TypeChecker {
             }
         }
 
+        let main = self
+            .functions
+            .get("main")
+            .ok_or_else(|| "No main function exists".to_string())?;
+
+        if !main.params.is_empty() {
+            return Err("main function cannot have parameters".to_string());
+        }
+
         Ok(())
     }
 
@@ -104,15 +117,33 @@ impl TypeChecker {
 
         self.pop_scope();
 
-        if expected_return != Type::Void && !found_return {
+        if expected_return != Type::Void && !Self::block_definitely_returns(&function.body) {
             return Err(format!(
-                "Function '{}' should return {}, but no return statement was found",
+                "Function '{}' should return {} on every path",
                 function.name,
                 expected_return.name()
             ));
         }
 
         Ok(())
+    }
+
+    fn block_definitely_returns(body: &[Stmt]) -> bool {
+        body.iter().any(Self::stmt_definitely_returns)
+    }
+
+    fn stmt_definitely_returns(stmt: &Stmt) -> bool {
+        match stmt {
+            Stmt::Return(_) => true,
+            Stmt::If(if_stmt) => {
+                Self::block_definitely_returns(&if_stmt.then_body)
+                    && if_stmt
+                        .else_body
+                        .as_deref()
+                        .is_some_and(Self::block_definitely_returns)
+            }
+            _ => false,
+        }
     }
 
     fn check_stmt(
@@ -143,14 +174,10 @@ impl TypeChecker {
                     ));
                 }
 
-                for stmt in &if_stmt.then_body {
-                    self.check_stmt(stmt, expected_return, found_return)?;
-                }
+                self.check_scoped_body(&if_stmt.then_body, expected_return, found_return)?;
 
                 if let Some(else_body) = &if_stmt.else_body {
-                    for stmt in else_body {
-                        self.check_stmt(stmt, expected_return, found_return)?;
-                    }
+                    self.check_scoped_body(else_body, expected_return, found_return)?;
                 }
 
                 Ok(())
@@ -168,9 +195,7 @@ impl TypeChecker {
 
                 self.loop_depth += 1;
 
-                for stmt in &while_stmt.body {
-                    self.check_stmt(stmt, expected_return, found_return)?;
-                }
+                self.check_scoped_body(&while_stmt.body, expected_return, found_return)?;
 
                 self.loop_depth -= 1;
 
@@ -193,9 +218,7 @@ impl TypeChecker {
 
                 self.loop_depth += 1;
 
-                for stmt in &for_stmt.body {
-                    self.check_stmt(stmt, expected_return, found_return)?;
-                }
+                self.check_scoped_body(&for_stmt.body, expected_return, found_return)?;
 
                 self.loop_depth -= 1;
 
@@ -271,7 +294,9 @@ impl TypeChecker {
                 let actual = self.check_expr(&return_stmt.value)?;
 
                 if expected_return == &Type::Void {
-                    return Err("Cannot return a value from a function with no return type".to_string());
+                    return Err(
+                        "Cannot return a value from a function with no return type".to_string()
+                    );
                 }
 
                 if !Self::types_compatible(expected_return, &actual) {
@@ -305,6 +330,20 @@ impl TypeChecker {
         self.define_var(var_decl.name.clone(), expected)?;
 
         Ok(())
+    }
+
+    fn check_scoped_body(
+        &mut self,
+        body: &[Stmt],
+        expected_return: &Type,
+        found_return: &mut bool,
+    ) -> Result<(), String> {
+        self.push_scope();
+        let result = body
+            .iter()
+            .try_for_each(|stmt| self.check_stmt(stmt, expected_return, found_return));
+        self.pop_scope();
+        result
     }
 
     fn check_assignment(&mut self, assignment: &Assignment) -> Result<(), String> {
@@ -348,13 +387,10 @@ impl TypeChecker {
 
                 let array_type = self
                     .get_var(array_name)
-                    .ok_or(format!("Unknown variable '{}'", array_name))?;
+                    .ok_or(format!("Unknown variable '{array_name}'"))?;
 
                 if !Self::types_compatible(&Type::Arr, &array_type) {
-                    return Err(format!(
-                        "push! expected arr, got {}",
-                        array_type.name()
-                    ));
+                    return Err(format!("push! expected arr, got {}", array_type.name()));
                 }
 
                 self.check_expr(&call.args[1])?;
@@ -369,27 +405,23 @@ impl TypeChecker {
 
                 let dict_name = match &call.args[0] {
                     Expr::Ident(name) => name,
-                    _ => return Err("set! first argument must be a dictionary variable".to_string()),
+                    _ => {
+                        return Err("set! first argument must be a dictionary variable".to_string())
+                    }
                 };
 
                 let dict_type = self
                     .get_var(dict_name)
-                    .ok_or(format!("Unknown variable '{}'", dict_name))?;
+                    .ok_or(format!("Unknown variable '{dict_name}'"))?;
 
                 if !Self::types_compatible(&Type::Dict, &dict_type) {
-                    return Err(format!(
-                        "set! expected dict, got {}",
-                        dict_type.name()
-                    ));
+                    return Err(format!("set! expected dict, got {}", dict_type.name()));
                 }
 
                 let key_type = self.check_expr(&call.args[1])?;
 
                 if !Self::types_compatible(&Type::Str, &key_type) {
-                    return Err(format!(
-                        "set! key must be str, got {}",
-                        key_type.name()
-                    ));
+                    return Err(format!("set! key must be str, got {}", key_type.name()));
                 }
 
                 self.check_expr(&call.args[2])?;
@@ -397,7 +429,7 @@ impl TypeChecker {
                 Ok(())
             }
 
-            other => Err(format!("Unknown macro '{}!'", other)),
+            other => Err(format!("Unknown macro '{other}!'")),
         }
     }
 
@@ -411,7 +443,7 @@ impl TypeChecker {
 
             Expr::Ident(name) => self
                 .get_var(name)
-                .ok_or(format!("Unknown variable '{}'", name)),
+                .ok_or(format!("Unknown variable '{name}'")),
 
             Expr::ArrayLiteral(items) => {
                 for item in items {
@@ -464,6 +496,24 @@ impl TypeChecker {
 
             Expr::Call { name, args } => self.check_function_call(name, args, true),
 
+            Expr::Unary { op, expr } => {
+                let actual = self.check_expr(expr)?;
+                let expected = match op {
+                    UnaryOp::Not => Type::Bool,
+                    UnaryOp::Neg => Type::Int,
+                };
+
+                if Self::types_compatible(&expected, &actual) {
+                    Ok(expected)
+                } else {
+                    Err(format!(
+                        "Unary operator expected {}, got {}",
+                        expected.name(),
+                        actual.name()
+                    ))
+                }
+            }
+
             Expr::Binary { left, op, right } => {
                 let left_type = self.check_expr(left)?;
                 let right_type = self.check_expr(right)?;
@@ -479,26 +529,22 @@ impl TypeChecker {
         args: &[Expr],
         used_as_expr: bool,
     ) -> Result<Type, String> {
-        if name == "len" {
-            if args.len() != 1 {
-                return Err(format!("len expected 1 arg, got {}", args.len()));
+        if name.starts_with("gui_") {
+            for arg in args {
+                self.check_expr(arg)?;
             }
+            return Ok(Type::Unknown);
+        }
 
-            let arg_type = self.check_expr(&args[0])?;
-
-            match arg_type {
-                Type::Str | Type::Arr | Type::Dict | Type::Unknown => return Ok(Type::Int),
-                other => {
-                    return Err(format!("len cannot be used on {}", other.name()));
-                }
-            }
+        if let Some(result) = self.check_builtin_call(name, args)? {
+            return Ok(result);
         }
 
         let sig = self
             .functions
             .get(name)
             .cloned()
-            .ok_or(format!("Unknown function '{}'", name))?;
+            .ok_or(format!("Unknown function '{name}'"))?;
 
         if sig.params.len() != args.len() {
             return Err(format!(
@@ -525,7 +571,7 @@ impl TypeChecker {
         }
 
         if used_as_expr && sig.return_type == Type::Void {
-            return Err(format!("Function '{}' does not return a value", name));
+            return Err(format!("Function '{name}' does not return a value"));
         }
 
         Ok(sig.return_type)
@@ -548,11 +594,7 @@ impl TypeChecker {
                     return Ok(Type::Unknown);
                 }
 
-                Err(format!(
-                    "Cannot add {} and {}",
-                    left.name(),
-                    right.name()
-                ))
+                Err(format!("Cannot add {} and {}", left.name(), right.name()))
             }
 
             BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div => {
@@ -584,10 +626,84 @@ impl TypeChecker {
             }
 
             BinaryOp::Eq | BinaryOp::NotEq => Ok(Type::Bool),
+
+            BinaryOp::And | BinaryOp::Or => {
+                if Self::types_compatible(&Type::Bool, left)
+                    && Self::types_compatible(&Type::Bool, right)
+                {
+                    Ok(Type::Bool)
+                } else {
+                    Err(format!(
+                        "Boolean operator requires bool and bool, got {} and {}",
+                        left.name(),
+                        right.name()
+                    ))
+                }
+            }
         }
     }
 
+    fn check_builtin_call(&mut self, name: &str, args: &[Expr]) -> Result<Option<Type>, String> {
+        let signature = match name {
+            "len" => None,
+            "input_str" => Some((vec![Type::Str], Type::Str)),
+            "input_int" => Some((vec![Type::Str], Type::Int)),
+            "lower" | "upper" | "trim" => Some((vec![Type::Str], Type::Str)),
+            "contains" => Some((vec![Type::Str, Type::Str], Type::Bool)),
+            "os_run" => Some((vec![Type::Str, Type::Arr], Type::Int)),
+            "os_capture" => Some((vec![Type::Str, Type::Arr], Type::Str)),
+            "os_get_env" => Some((vec![Type::Str], Type::Str)),
+            "os_set_env" => Some((vec![Type::Str, Type::Str], Type::Bool)),
+            "os_read_file" => Some((vec![Type::Str], Type::Str)),
+            "os_write_file" => Some((vec![Type::Str, Type::Str], Type::Bool)),
+            "os_exists" => Some((vec![Type::Str], Type::Bool)),
+            "os_sleep" => Some((vec![Type::Int], Type::Bool)),
+            "os_current_dir" => Some((vec![], Type::Str)),
+            _ => return Ok(None),
+        };
+
+        if name == "len" {
+            if args.len() != 1 {
+                return Err(format!("len expected 1 arg, got {}", args.len()));
+            }
+
+            let actual = self.check_expr(&args[0])?;
+            return match actual {
+                Type::Str | Type::Arr | Type::Dict | Type::Unknown => Ok(Some(Type::Int)),
+                other => Err(format!("len cannot be used on {}", other.name())),
+            };
+        }
+
+        let (params, result) = signature.expect("known builtin has a signature");
+
+        if params.len() != args.len() {
+            return Err(format!(
+                "{} expected {} args, got {}",
+                name,
+                params.len(),
+                args.len()
+            ));
+        }
+
+        for (index, (expected, arg)) in params.iter().zip(args).enumerate() {
+            let actual = self.check_expr(arg)?;
+            if !Self::types_compatible(expected, &actual) {
+                return Err(format!(
+                    "{} argument {} expected {}, got {}",
+                    name,
+                    index + 1,
+                    expected.name(),
+                    actual.name()
+                ));
+            }
+        }
+
+        Ok(Some(result))
+    }
+
     fn type_from_name(name: &str) -> Result<Type, String> {
+        let name = name.strip_prefix("cre_").unwrap_or(name);
+
         match name {
             "int" => Ok(Type::Int),
             "str" => Ok(Type::Str),
@@ -595,7 +711,7 @@ impl TypeChecker {
             "arr" => Ok(Type::Arr),
             "dict" => Ok(Type::Dict),
 
-            other => Err(format!("Unknown type '{}'", other)),
+            other => Err(format!("Unknown type '{other}'")),
         }
     }
 
@@ -618,7 +734,7 @@ impl TypeChecker {
             .ok_or("Internal typechecker error: missing scope".to_string())?;
 
         if scope.contains_key(&name) {
-            return Err(format!("Variable '{}' already exists in this scope", name));
+            return Err(format!("Variable '{name}' already exists in this scope"));
         }
 
         scope.insert(name, ty);
