@@ -942,23 +942,22 @@ fn render_profile_dashboard(ctx: &egui::Context, state: &mut GuiState) -> Option
     egui::SidePanel::right("tsst_dashboard_operators")
         .resizable(false)
         .exact_width(270.0)
-        .frame(egui::Frame::none().fill(rgb(style.bg)).inner_margin(egui::Margin::same(12.0)))
+        .frame(egui::Frame::none().fill(rgb(style.panel)).stroke(egui::Stroke::new(1.0, rgb(style.border))).inner_margin(egui::Margin::same(12.0)))
         .show(ctx, |ui| {
-            egui::Frame::none().fill(rgb(style.panel)).stroke(egui::Stroke::new(1.0, rgb(style.border))).inner_margin(egui::Margin::same(11.0)).show(ui, |ui| {
-                ui.set_min_width(246.0);
-                ui.small("OPERATORS");
-                ui.add(egui::TextEdit::singleline(&mut dashboard.search).hint_text("Search operators...").desired_width(f32::INFINITY));
-                ui.small("ATTACKERS / DEFENDERS");
-                let query = dashboard.search.to_ascii_lowercase();
-                egui::ScrollArea::vertical().max_height(350.0).show(ui, |ui| {
-                    for operator in &dashboard.operators {
-                        if !query.is_empty() && !operator.to_ascii_lowercase().contains(&query) { continue; }
-                        if ui.selectable_label(selected == *operator, operator).clicked() {
-                            selected = operator.clone();
-                            callback = Some(dashboard.change_callback.clone());
-                        }
+            ui.set_width(ui.available_width());
+            ui.small("OPERATORS");
+            ui.add(egui::TextEdit::singleline(&mut dashboard.search).hint_text("Search operators...").desired_width(f32::INFINITY));
+            ui.small("ATTACKERS / DEFENDERS");
+            let query = dashboard.search.to_ascii_lowercase();
+            egui::ScrollArea::vertical().max_height(350.0).show(ui, |ui| {
+                ui.set_width(ui.available_width());
+                for operator in &dashboard.operators {
+                    if !query.is_empty() && !operator.to_ascii_lowercase().contains(&query) { continue; }
+                    if ui.selectable_label(selected == *operator, operator).clicked() {
+                        selected = operator.clone();
+                        callback = Some(dashboard.change_callback.clone());
                     }
-                });
+                }
             });
         });
 
