@@ -23,6 +23,7 @@
         <a href="#overview">Overview</a>
         <a href="#install">Install</a>
         <a href="#project">Create a Project</a>
+        <a href="#run-build">Run & Build</a>
 
         <p>Language</p>
         <a href="#variables">Variables</a>
@@ -34,15 +35,14 @@
         <a href="#dictionaries">Dictionaries</a>
         <a href="#imports">Imports</a>
         <a href="#builtins">Built-ins</a>
-        <a href="#os">OS Access</a>
 
         <p>Packages</p>
         <a href="#packages">Package Manager</a>
         <a href="#quartus">Quartus</a>
-        <a href="#calculator">Calculator Example</a>
 
         <p>Tools</p>
         <a href="#vscode">VS Code Extension</a>
+        <a href="#architecture">Architecture</a>
         <a href="#roadmap">Roadmap</a>
       </nav>
     </aside>
@@ -65,17 +65,17 @@
       <main id="top">
         <section class="hero">
           <div class="hero-copy">
-            <div class="eyebrow">Lightweight • Aesthetically Typed • Built in Rust</div>
+            <div class="eyebrow">Aesthetically Typed • Lightweight • Compiled • Built in Rust</div>
             <h1>Build with TSST.</h1>
             <p>
               TSST is an experimental programming language with typed declarations,
-              functions, loops, arrays, dictionaries, imports, input, packages,
-              and VS Code support.
+              functions, loops, arrays, dictionaries, imports, packages, a Rust-built CLI,
+              compiled executables, and a lightweight syntax designed to feel clean and aesthetic.
             </p>
 
             <div class="hero-actions">
               <a class="button primary" href="#install">Start Building</a>
-              <a class="button ghost" href="#quartus">Explore Quartus</a>
+              <a class="button ghost" href="#gui-overview">Build GUI Apps</a>
             </div>
           </div>
 
@@ -85,26 +85,31 @@
               <span></span>
               <span></span>
             </div>
-            <pre><code class="language-tsst">use "quartus:math";
-use "quartus:ui";
+            <pre><code class="language-tsst">pub fcn main () {
+    gui_window("Supply Hustle", 620, 700);
 
-pub fcn main () {
-    q_ui_app_start("Calculator");
+    gui_theme_mode("light");
+    gui_theme_bg(245, 245, 245);
+    gui_theme_panel(255, 255, 255);
+    gui_theme_card(255, 255, 255);
+    gui_theme_button(255, 255, 255);
+    gui_theme_button_alt(255, 255, 255);
+    gui_theme_text(0, 0, 0);
+    gui_theme_border(0, 0, 0);
 
-    cre_int a = input_int("First number: ");
-    cre_str op = input_str("Operation: ");
-    cre_int b = input_int("Second number: ");
+    gui_title("Supply Hustle");
+    gui_text("Buy supply. Sell supply. Make money.");
 
-    if op == "+" {
-        q_ui_number("Result", a + b);
-    }
+    gui_var("money", 100);
+    gui_var("supply", 0);
 
-    if op == "*" {
-        q_ui_number("Result", a * b);
-    }
+    gui_stat("Money", "money");
+    gui_stat("Supply", "supply");
 
-    q_ui_success("Done");
-    q_ui_app_end();
+    gui_button_transfer("Buy 1", "money", 10, "supply", 1);
+    gui_button_transfer("Sell 1", "supply", 1, "money", 15);
+
+    gui_show();
 }</code></pre>
           </div>
         </section>
@@ -117,45 +122,59 @@ pub fcn main () {
 
           <p class="lead">
             TSST is a small language focused on readable syntax, simple types,
-            packages, and a clean development experience. It runs through a Rust-built CLI
-            and includes a VS Code extension for syntax coloring and autocomplete.
+            package-style imports, and a clean development flow. It runs through
+            a Rust-built CLI and can either interpret TSST files or compile them
+            into executable apps.
           </p>
 
           <div class="feature-grid">
             <article class="feature-card">
               <div class="icon">⌘</div>
-              <h3>Clean Syntax</h3>
-              <p>Typed declarations like <code>cre_int</code>, <code>cre_str</code>, and <code>cre_dict</code>.</p>
+              <h3>Aesthetic Syntax</h3>
+              <p>
+                Typed declarations like <code>cre_int</code>, <code>cre_str</code>,
+                <code>cre_bool</code>, <code>cre_arr</code>, and <code>cre_dict</code>.
+              </p>
             </article>
 
             <article class="feature-card">
               <div class="icon">↳</div>
               <h3>Functions</h3>
-              <p>Use parameters, return values, and arrow return types like <code>-> int</code>.</p>
+              <p>
+                Use parameters, return values, and arrow return types like <code>-> int</code>.
+              </p>
             </article>
 
             <article class="feature-card">
               <div class="icon">▦</div>
               <h3>Data Structures</h3>
-              <p>Arrays, dictionaries, indexing, mutation macros, and <code>len()</code>.</p>
+              <p>
+                Arrays, dictionaries, indexing, mutation macros, and <code>len()</code>.
+              </p>
             </article>
 
             <article class="feature-card">
-              <div class="icon">⌁</div>
-              <h3>Interactive Input</h3>
-              <p>Read user input with <code>input_str()</code> and <code>input_int()</code>.</p>
+              <div class="icon">⚙</div>
+              <h3>Compiled Builds</h3>
+              <p>
+                <code>tsst build</code> compiles TSST into Rust and creates a release executable.
+              </p>
             </article>
 
             <article class="feature-card">
-              <div class="icon">⬡</div>
-              <h3>Packages</h3>
-              <p>Install GitHub packages with <code>tsst install</code> and import with <code>use "quartus:math";</code>.</p>
+              <div class="icon">◇</div>
+              <h3>Lightweight</h3>
+              <p>
+                TSST keeps the syntax small, readable, and easy to experiment with.
+              </p>
             </article>
 
             <article class="feature-card">
               <div class="icon">✦</div>
               <h3>Editor Support</h3>
-              <p>VS Code language recognition, syntax highlighting, autocomplete, and snippets.</p>
+              <p>
+                VS Code language recognition, syntax highlighting, autocomplete, and snippets.
+              </p>
             </article>
           </div>
         </section>
@@ -187,7 +206,7 @@ cd TSST</code></pre>
             <article class="step">
               <span>03</span>
               <div>
-                <h3>Run a TSST file</h3>
+                <h3>Run TSST</h3>
                 <pre><code class="language-powershell">.\target\release\tsst.exe path/to/main.tsst</code></pre>
               </div>
             </article>
@@ -195,7 +214,7 @@ cd TSST</code></pre>
 
           <div class="callout">
             <strong>Tip:</strong> Add <code>target/release</code> to your Windows PATH so you can run
-            <code>tsst main.tsst</code> from any TSST project folder.
+            <code>tsst</code> from any TSST project folder.
           </div>
         </section>
 
@@ -206,7 +225,7 @@ cd TSST</code></pre>
           </div>
 
           <p class="lead">
-            Create a project anywhere with <code>tsst init</code>.
+            Create a workspace anywhere with <code>tsst init</code>.
           </p>
 
           <div class="two-column">
@@ -219,7 +238,7 @@ cd MyApp</code></pre>
 
             <div>
               <h3>Run it</h3>
-              <pre><code class="language-powershell">tsst main.tsst</code></pre>
+              <pre><code class="language-powershell">tsst run main.tsst</code></pre>
             </div>
           </div>
 
@@ -230,22 +249,67 @@ cd MyApp</code></pre>
   packages/</code></pre>
         </section>
 
+        <section class="section" id="run-build">
+          <div class="section-heading">
+            <p class="kicker">Run & Build</p>
+            <h2>Run TSST files or build executables</h2>
+          </div>
+
+          <p class="lead">
+            TSST currently has two execution paths: interpreted mode and compiled mode.
+          </p>
+
+          <div class="two-column">
+            <div>
+              <h3>Interpreter mode</h3>
+              <pre><code class="language-powershell">tsst run main.tsst</code></pre>
+              <p>
+                This runs TSST directly through the interpreter. Console programs work here.
+              </p>
+            </div>
+
+            <div>
+              <h3>Compiled mode</h3>
+              <pre><code class="language-powershell">tsst build main.tsst
+.\build\release\main.exe</code></pre>
+              <p>
+                This compiles TSST into Rust and builds a release executable.
+                GUI apps currently require compiled mode.
+              </p>
+            </div>
+          </div>
+
+          <h3>Build output</h3>
+          <pre><code class="language-text">MyApp/
+  build/
+    rust/
+      Cargo.toml
+      src/
+        main.rs
+    release/
+      main.exe</code></pre>
+        </section>
+
         <section class="section" id="variables">
           <div class="section-heading">
             <p class="kicker">Syntax</p>
             <h2>Variables</h2>
           </div>
 
-          <pre><code class="language-tsst">cre_int age = 37;
-cre_str name = "John Doe";
-cre_bool cool = true;
+          <pre><code class="language-tsst">pub fcn main () {
+    cre_int age = 37;
+    cre_str name = "John Doe";
+    cre_bool cool = true;
 
-cre_arr nums = [1, 2, 3];
+    cre_arr nums = [1, 2, 3];
 
-cre_dict user = {
-    "name": "John Doe",
-    "age": 37,
-};</code></pre>
+    cre_dict user = {
+        "name": "John Doe",
+        "age": 37,
+    };
+
+    cons!(name);
+}</code></pre>
         </section>
 
         <section class="section" id="functions">
@@ -323,32 +387,48 @@ pub fcn main () {
           <div class="two-column">
             <div>
               <h3>Classic for loop</h3>
-              <pre><code class="language-tsst">for (cre_int i = 0; i < 5; i = i + 1) {
-    cons!(i);
+              <pre><code class="language-tsst">pub fcn main () {
+    for cre_int i = 0; i < 5; i = i + 1 {
+        cons!(i);
+    }
 }</code></pre>
             </div>
 
             <div>
               <h3>For-each loop</h3>
-              <pre><code class="language-tsst">cre_arr nums = [10, 20, 30];
+              <pre><code class="language-tsst">pub fcn main () {
+    cre_arr nums = [10, 20, 30];
 
-for (cre_int n in nums) {
-    cons!(n);
+    for cre_int n in nums {
+        cons!(n);
+    }
 }</code></pre>
             </div>
           </div>
 
+          <h3>While loop</h3>
+          <pre><code class="language-tsst">pub fcn main () {
+    cre_int i = 0;
+
+    while i < 5 {
+        cons!(i);
+        i = i + 1;
+    }
+}</code></pre>
+
           <h3>Break and continue</h3>
-          <pre><code class="language-tsst">for (cre_int i = 0; i < 10; i = i + 1) {
-    if i == 3 {
-        continue;
-    }
+          <pre><code class="language-tsst">pub fcn main () {
+    for cre_int i = 0; i < 10; i = i + 1 {
+        if i == 3 {
+            continue;
+        }
 
-    if i == 7 {
-        break;
-    }
+        if i == 7 {
+            break;
+        }
 
-    cons!(i);
+        cons!(i);
+    }
 }</code></pre>
         </section>
 
@@ -386,9 +466,8 @@ for (cre_int n in nums) {
 
     set!(user, "admin", true);
 
-    for (cre_str key in user) {
+    for cre_str key in user {
         cons!(key);
-        cons!(user[key]);
     }
 }</code></pre>
         </section>
@@ -459,37 +538,26 @@ pub fcn main () {
               <h3><code>set!(dict, key, value)</code></h3>
               <p>Sets a dictionary key to a value.</p>
             </article>
-          </div>
-        </section>
 
-        <section class="section" id="os">
-          <div class="section-heading">
-            <p class="kicker">Operating System</p>
-            <h2>Files, processes, environment, and timing</h2>
-          </div>
+            <article>
+              <h3><code>lower(str)</code></h3>
+              <p>Converts a string to lowercase.</p>
+            </article>
 
-          <p class="lead">
-            Process calls receive an argument array directly; TSST does not pass commands through a shell.
-          </p>
+            <article>
+              <h3><code>upper(str)</code></h3>
+              <p>Converts a string to uppercase.</p>
+            </article>
 
-          <pre><code class="language-tsst">pub fcn main () {
-    cre_str output = os_capture("git", ["--version"]);
-    cons!(output);
+            <article>
+              <h3><code>trim(str)</code></h3>
+              <p>Trims whitespace from a string.</p>
+            </article>
 
-    os_write_file("hello.txt", "Hello from TSST!");
-    cons!(os_read_file("hello.txt"));
-}</code></pre>
-
-          <div class="api-list">
-            <article><h3><code>os_run(program, args)</code></h3><p>Runs a program and returns its exit code.</p></article>
-            <article><h3><code>os_capture(program, args)</code></h3><p>Runs a program and returns standard output.</p></article>
-            <article><h3><code>os_get_env(name)</code></h3><p>Reads an environment variable, or returns an empty string.</p></article>
-            <article><h3><code>os_set_env(name, value)</code></h3><p>Sets an environment variable for the current process.</p></article>
-            <article><h3><code>os_read_file(path)</code></h3><p>Reads a UTF-8 text file.</p></article>
-            <article><h3><code>os_write_file(path, content)</code></h3><p>Writes a UTF-8 text file.</p></article>
-            <article><h3><code>os_exists(path)</code></h3><p>Checks whether a file or folder exists.</p></article>
-            <article><h3><code>os_sleep(milliseconds)</code></h3><p>Pauses execution.</p></article>
-            <article><h3><code>os_current_dir()</code></h3><p>Returns the current working directory.</p></article>
+            <article>
+              <h3><code>contains(str, needle)</code></h3>
+              <p>Checks whether a string contains another string.</p>
+            </article>
           </div>
         </section>
 
@@ -640,136 +708,6 @@ use "quartus:ui";</code></pre>
           </div>
         </section>
 
-        <section class="section" id="calculator">
-          <div class="section-heading">
-            <p class="kicker">Example App</p>
-            <h2>Interactive calculator with Quartus</h2>
-          </div>
-
-          <p class="lead">
-            This example reads two numbers and an operation from the terminal,
-            then displays the result using Quartus UI.
-          </p>
-
-          <pre><code class="language-tsst">use "quartus:math";
-use "quartus:ui";
-
-fcn calculate (cre_int a, cre_int b, cre_str operation) -> int {
-    if operation == "+" {
-        return a + b;
-    }
-
-    if operation == "add" {
-        return a + b;
-    }
-
-    if operation == "-" {
-        return a - b;
-    }
-
-    if operation == "subtract" {
-        return a - b;
-    }
-
-    if operation == "*" {
-        return a * b;
-    }
-
-    if operation == "multiply" {
-        return a * b;
-    }
-
-    if operation == "/" {
-        return a / b;
-    }
-
-    if operation == "divide" {
-        return a / b;
-    }
-
-    return 0;
-}
-
-fcn is_valid_operation (cre_str operation) -> bool {
-    if operation == "+" {
-        return true;
-    }
-
-    if operation == "add" {
-        return true;
-    }
-
-    if operation == "-" {
-        return true;
-    }
-
-    if operation == "subtract" {
-        return true;
-    }
-
-    if operation == "*" {
-        return true;
-    }
-
-    if operation == "multiply" {
-        return true;
-    }
-
-    if operation == "/" {
-        return true;
-    }
-
-    if operation == "divide" {
-        return true;
-    }
-
-    return false;
-}
-
-pub fcn main () {
-    q_ui_app_start("Interactive Quartus Calculator");
-
-    q_ui_title("Choose Operation");
-    q_ui_text("+ or add");
-    q_ui_text("- or subtract");
-    q_ui_text("* or multiply");
-    q_ui_text("/ or divide");
-
-    q_ui_space();
-
-    cre_int a = input_int("Enter first number: ");
-    cre_str operation = input_str("Enter operation: ");
-    cre_int b = input_int("Enter second number: ");
-
-    q_ui_space();
-
-    if is_valid_operation(operation) {
-        q_ui_title("Calculator Result");
-
-        q_ui_number("First number", a);
-        q_ui_number("Second number", b);
-        q_ui_text("Operation: " + operation);
-
-        q_ui_space();
-
-        q_ui_number("Result", calculate(a, b, operation));
-
-        q_ui_space();
-
-        q_ui_title("Quartus Extras");
-        q_ui_number("Max", q_max(a, b));
-        q_ui_number("Min", q_min(a, b));
-        q_ui_number("A squared", q_square(a));
-        q_ui_number("B squared", q_square(b));
-    } else {
-        q_ui_error("Invalid operation");
-        q_ui_text("Try +, -, *, /, add, subtract, multiply, or divide.");
-    }
-
-    q_ui_app_end();
-}</code></pre>
-        </section>
-
         <section class="section" id="vscode">
           <div class="section-heading">
             <p class="kicker">Editor</p>
@@ -795,6 +733,33 @@ vsce package
 code --install-extension .\vscode-tsst-0.0.1.vsix --force</code></pre>
         </section>
 
+        <section class="section" id="architecture">
+          <div class="section-heading">
+            <p class="kicker">Architecture</p>
+            <h2>How TSST builds apps</h2>
+          </div>
+
+          <p class="lead">
+            TSST separates compiler logic from app logic. The compiler turns TSST
+            into Rust calls. The generated runtime provides generic language and GUI features.
+            Your TSST file controls the actual app behavior and style.
+          </p>
+
+          <pre><code class="language-text">compiler.rs
+  compiles TSST AST into Rust
+
+generated_runtime.rs
+  provides generic runtime and GUI engine
+
+main.tsst
+  controls app logic, layout, and visual style</code></pre>
+
+          <div class="callout">
+            <strong>Goal:</strong> App-specific behavior should be written in TSST,
+            not hardcoded into the Rust compiler.
+          </div>
+        </section>
+
         <section class="section" id="roadmap">
           <div class="section-heading">
             <p class="kicker">Roadmap</p>
@@ -804,23 +769,31 @@ code --install-extension .\vscode-tsst-0.0.1.vsix --force</code></pre>
           <div class="roadmap">
             <div>
               <span></span>
-              <p>Smarter VS Code autocomplete for installed package functions.</p>
+              <p>Move the generated runtime string into a real reusable Rust runtime crate.</p>
             </div>
             <div>
               <span></span>
-              <p>Better package commands like search and publish.</p>
+              <p>Add GUI callbacks so TSST functions can run when buttons are clicked.</p>
             </div>
             <div>
               <span></span>
-              <p>Better typechecker support for arrays and dictionaries.</p>
+              <p>Add generic file and folder APIs for workspace apps.</p>
+            </div>
+            <div>
+              <span></span>
+              <p>Add generic audio APIs without per-app Rust changes.</p>
+            </div>
+            <div>
+              <span></span>
+              <p>Improve package commands like search and publish.</p>
+            </div>
+            <div>
+              <span></span>
+              <p>Smarter VS Code autocomplete for installed package functions and GUI APIs.</p>
             </div>
             <div>
               <span></span>
               <p>Create official releases for the TSST CLI.</p>
-            </div>
-            <div>
-              <span></span>
-              <p>Publish the VS Code extension later.</p>
             </div>
           </div>
         </section>
