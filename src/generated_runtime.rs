@@ -473,14 +473,29 @@ impl GuiStyle {
 }
 
 #[derive(Debug, Clone)]
+struct ProfileDashboard {
+    operators: Vec<String>,
+    selected_var: String,
+    horizontal_var: String,
+    vertical_var: String,
+    hotkey: String,
+    change_callback: String,
+    save_callback: String,
+    search: String,
+    active_tab: usize,
+}
+
+#[derive(Debug, Clone)]
 struct GuiState {
     title: String,
     width: i64,
     height: i64,
     elements: Vec<GuiElement>,
     vars: HashMap<String, i64>,
+    strings: HashMap<String, String>,
     status: String,
     style: GuiStyle,
+    dashboard: Option<ProfileDashboard>,
 }
 
 impl GuiState {
@@ -491,8 +506,10 @@ impl GuiState {
             height: 400,
             elements: Vec::new(),
             vars: HashMap::new(),
+            strings: HashMap::new(),
             status: "Ready.".to_string(),
             style: GuiStyle::new(),
+            dashboard: None,
         }
     }
 }
@@ -533,8 +550,10 @@ fn tsst_gui_window(title: RtValue, width: RtValue, height: RtValue) -> Result<Rt
     state.height = height;
     state.elements.clear();
     state.vars.clear();
+    state.strings.clear();
     state.status = "Ready.".to_string();
     state.style = GuiStyle::new();
+    state.dashboard = None;
 
     Ok(RtValue::Bool(true))
 }
@@ -586,6 +605,58 @@ fn tsst_gui_button_call(label: RtValue, callback: RtValue) -> Result<RtValue, St
     state.elements.push(GuiElement::CallbackButton(label, callback));
 
     Ok(RtValue::Bool(true))
+}
+
+fn tsst_gui_profile_dashboard(
+    operators: RtValue,
+    selected: RtValue,
+    horizontal: RtValue,
+    vertical: RtValue,
+    hotkey: RtValue,
+    change_callback: RtValue,
+    save_callback: RtValue,
+) -> Result<RtValue, String> {
+    let operators = match operators {
+        RtValue::Array(values) => values
+            .into_iter()
+            .map(|value| expect_str(value, "gui_profile_dashboard operator"))
+            .collect::<Result<Vec<_>, _>>()?,
+        other => return Err(format!("gui_profile_dashboard operators must be arr, got {}.", other.type_name())),
+    };
+    let selected = expect_str(selected, "gui_profile_dashboard selected")?;
+    let horizontal = expect_int(horizontal, "gui_profile_dashboard horizontal")?;
+    let vertical = expect_int(vertical, "gui_profile_dashboard vertical")?;
+    let hotkey = expect_str(hotkey, "gui_profile_dashboard hotkey")?;
+    let change_callback = expect_str(change_callback, "gui_profile_dashboard change callback")?;
+    let save_callback = expect_str(save_callback, "gui_profile_dashboard save callback")?;
+    let mut state = gui_state().lock().map_err(|_| "Could not lock GUI state.".to_string())?;
+    state.strings.insert("selected_operator".to_string(), selected);
+    state.vars.insert("horizontal".to_string(), horizontal);
+    state.vars.insert("vertical".to_string(), vertical);
+    state.dashboard = Some(ProfileDashboard {
+        operators,
+        selected_var: "selected_operator".to_string(),
+        horizontal_var: "horizontal".to_string(),
+        vertical_var: "vertical".to_string(),
+        hotkey,
+        change_callback,
+        save_callback,
+        search: String::new(),
+        active_tab: 0,
+    });
+    Ok(RtValue::Bool(true))
+}
+
+fn tsst_gui_get_string(name: RtValue) -> Result<RtValue, String> {
+    let name = expect_str(name, "gui_get_string name")?;
+    let state = gui_state().lock().map_err(|_| "Could not lock GUI state.".to_string())?;
+    Ok(RtValue::Str(state.strings.get(&name).cloned().unwrap_or_default()))
+}
+
+fn tsst_gui_get_int(name: RtValue) -> Result<RtValue, String> {
+    let name = expect_str(name, "gui_get_int name")?;
+    let state = gui_state().lock().map_err(|_| "Could not lock GUI state.".to_string())?;
+    Ok(RtValue::Int(state.vars.get(&name).cloned().unwrap_or(0)))
 }
 
 fn tsst_gui_space() -> Result<RtValue, String> {
@@ -794,6 +865,13 @@ impl eframe::App for TsstGuiApp {
             ctx.set_visuals(egui::Visuals::dark());
         }
 
+        if self.state.dashboard.is_some() {
+            if let Some(callback) = render_profile_dashboard(ctx, &mut self.state) {
+                run_dashboard_callback(&mut self.state, &callback);
+            }
+            return;
+        }
+
         let style = self.state.style.clone();
 
         egui::CentralPanel::default()
@@ -822,6 +900,91 @@ impl eframe::App for TsstGuiApp {
                     });
             });
     }
+}
+
+fn run_dashboard_callback(state: &mut GuiState, callback: &str) {
+    let sync = gui_state()
+        .lock()
+        .map(|mut global| *global = state.clone())
+        .map_err(|_| "Could not lock GUI state.".to_string());
+    let result = sync.and_then(|_| tsst_gui_dispatch_callback(callback));
+    if let Ok(global) = gui_state().lock() {
+        *state = global.clone();
+    }
+    state.status = match result {
+        Ok(()) => "Saved.".to_string(),
+        Err(error) => format!("Callback error: {}", error),
+    };
+}
+
+fn render_profile_dashboard(ctx: &egui::Context, state: &mut GuiState) -> Option<String> {
+    let mut dashboard = state.dashboard.clone()?;
+    let style = state.style.clone();
+    let mut callback = None;
+    let mut selected = state.strings.get(&dashboard.selected_var).cloned().unwrap_or_default();
+    let mut horizontal = state.vars.get(&dashboard.horizontal_var).cloned().unwrap_or(0);
+    let mut vertical = state.vars.get(&dashboard.vertical_var).cloned().unwrap_or(0);
+
+    egui::TopBottomPanel::top("tsst_dashboard_top")
+        .frame(egui::Frame::none().fill(rgb(style.panel)).inner_margin(egui::Margin::same(10.0)))
+        .show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                if ui.selectable_label(dashboard.active_tab == 0, "Combat").clicked() { dashboard.active_tab = 0; }
+                if ui.selectable_label(dashboard.active_tab == 1, "Settings").clicked() { dashboard.active_tab = 1; }
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if ui.button("Save").clicked() { callback = Some(dashboard.save_callback.clone()); }
+                    let active = state.vars.get("enabled").cloned().unwrap_or(0) != 0;
+                    ui.label(if active { "● ACTIVE" } else { "○ IDLE" });
+                });
+            });
+        });
+
+    egui::CentralPanel::default().frame(egui::Frame::none().fill(rgb(style.bg))).show(ctx, |ui| {
+        ui.add_space(12.0);
+        ui.horizontal_top(|ui| {
+            ui.set_width(ui.available_width() * 0.68);
+            ui.vertical(|ui| {
+                egui::Frame::none().fill(rgb(style.panel)).stroke(egui::Stroke::new(1.0, rgb(style.border))).inner_margin(egui::Margin::same(15.0)).show(ui, |ui| {
+                    ui.horizontal(|ui| { ui.heading("Compensation"); ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| { ui.label("○ IDLE"); }); });
+                    ui.horizontal(|ui| { ui.label("Hotkey"); ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| { ui.monospace(&dashboard.hotkey); }); });
+                });
+                ui.add_space(10.0);
+                egui::Frame::none().fill(rgb(style.panel)).stroke(egui::Stroke::new(1.0, rgb(style.border))).inner_margin(egui::Margin::same(15.0)).show(ui, |ui| {
+                    ui.horizontal(|ui| { ui.heading("Profile"); ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| { ui.colored_label(rgb(style.accent), &selected); }); });
+                    ui.horizontal(|ui| { ui.label("Horizontal"); ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| { ui.colored_label(rgb(style.accent), format!("{:.3}", horizontal as f64 / 1000.0)); }); });
+                    if ui.add(egui::Slider::new(&mut horizontal, -3000..=3000).show_value(false)).changed() { callback = Some(dashboard.change_callback.clone()); }
+                    ui.horizontal(|ui| { ui.label("Vertical"); ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| { ui.colored_label(rgb(style.accent), format!("{:.3}", vertical as f64 / 1000.0)); }); });
+                    if ui.add(egui::Slider::new(&mut vertical, 0..=15000).show_value(false)).changed() { callback = Some(dashboard.change_callback.clone()); }
+                });
+            });
+
+            ui.add_space(10.0);
+            ui.vertical(|ui| {
+                ui.set_width(ui.available_width());
+                egui::Frame::none().fill(rgb(style.panel)).stroke(egui::Stroke::new(1.0, rgb(style.border))).inner_margin(egui::Margin::same(11.0)).show(ui, |ui| {
+                    ui.small("OPERATORS");
+                    ui.add(egui::TextEdit::singleline(&mut dashboard.search).hint_text("Search operators...").desired_width(f32::INFINITY));
+                    ui.small("ATTACKERS / DEFENDERS");
+                    let query = dashboard.search.to_ascii_lowercase();
+                    egui::ScrollArea::vertical().max_height(315.0).show(ui, |ui| {
+                        for operator in &dashboard.operators {
+                            if !query.is_empty() && !operator.to_ascii_lowercase().contains(&query) { continue; }
+                            if ui.selectable_label(selected == *operator, operator).clicked() {
+                                selected = operator.clone();
+                                callback = Some(dashboard.change_callback.clone());
+                            }
+                        }
+                    });
+                });
+            });
+        });
+    });
+
+    state.strings.insert(dashboard.selected_var.clone(), selected);
+    state.vars.insert(dashboard.horizontal_var.clone(), horizontal);
+    state.vars.insert(dashboard.vertical_var.clone(), vertical);
+    state.dashboard = Some(dashboard);
+    callback
 }
 
 fn render_gui(ui: &mut egui::Ui, state: &mut GuiState) {

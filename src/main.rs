@@ -1031,4 +1031,30 @@ mod tests {
         assert!(!generated.contains("\"ignored\" => { tsst_ignored()?; Ok(()) }"));
         assert!(generated.contains("GuiElement::CallbackButton"));
     }
+
+    #[test]
+    fn profile_dashboard_generates_search_sliders_and_state_getters() {
+        let program = parse(
+            r#"fcn changed () {
+                cre_str selected = gui_get_string("selected_operator");
+                cre_int horizontal = gui_get_int("horizontal");
+                cons!(selected + horizontal);
+            }
+            fcn saved () { cons!("saved"); }
+            pub fcn main () {
+                gui_window("Dashboard", 896, 512);
+                gui_profile_dashboard(["Ace", "Ash"], "Ace", -350, 6900, "F7", "changed", "saved");
+                gui_show();
+            }"#,
+        );
+        TypeChecker::new()
+            .check_program(&program)
+            .expect("dashboard should typecheck");
+        let generated = Compiler::new()
+            .compile_program(&program)
+            .expect("dashboard should compile");
+        assert!(generated.contains("render_profile_dashboard"));
+        assert!(generated.contains("tsst_gui_get_string"));
+        assert!(generated.contains("tsst_gui_get_int"));
+    }
 }

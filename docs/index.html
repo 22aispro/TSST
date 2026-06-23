@@ -675,6 +675,38 @@ pub fcn main () {
     gui_button_call("Say hello", "say_hello");
     gui_show();
 }</code></pre>
+
+          <h3>Profile dashboard</h3>
+          <p>
+            The profile dashboard provides a compact two-column editor with tabs, status and save
+            controls, searchable selection, and horizontal/vertical sliders. Values use fixed-point
+            thousandths, so <code>-350</code> displays as <code>-0.350</code>.
+          </p>
+          <pre><code class="language-tsst">fcn profile_changed () {
+    cre_str operator = gui_get_string("selected_operator");
+    cre_int horizontal = gui_get_int("horizontal");
+    cre_int vertical = gui_get_int("vertical");
+    cons!(operator + horizontal + vertical);
+}
+
+fcn save_profile () {
+    cons!("Saved");
+}
+
+pub fcn main () {
+    cre_arr operators = ["Ace", "Amaru", "Ash", "Dokkaebi"];
+    gui_window("Profile Editor", 896, 512);
+    gui_profile_dashboard(
+        operators,
+        "Ace",
+        -350,
+        6900,
+        "F7",
+        "profile_changed",
+        "save_profile"
+    );
+    gui_show();
+}</code></pre>
         </section>
 
         <section class="section" id="gui-example">

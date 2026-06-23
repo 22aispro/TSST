@@ -324,6 +324,24 @@
     "insertText": "gui_button_call(${1:\"Button\"}, ${2:\"callback_function\"})"
   },
   {
+    "label": "gui_profile_dashboard",
+    "kind": "function",
+    "detail": "Searchable profile dashboard with operator list and sliders",
+    "insertText": "gui_profile_dashboard(${1:operators}, ${2:\"Ace\"}, ${3:-350}, ${4:6900}, ${5:\"F7\"}, ${6:\"changed\"}, ${7:\"saved\"})"
+  },
+  {
+    "label": "gui_get_string",
+    "kind": "function",
+    "detail": "Read a GUI string value inside a callback",
+    "insertText": "gui_get_string(${1:\"selected_operator\"})"
+  },
+  {
+    "label": "gui_get_int",
+    "kind": "function",
+    "detail": "Read a GUI integer value inside a callback",
+    "insertText": "gui_get_int(${1:\"horizontal\"})"
+  },
+  {
     "label": "calculator",
     "kind": "snippet",
     "detail": "interactive calculator starter",
