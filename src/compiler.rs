@@ -45,6 +45,7 @@ impl Compiler {
         let mut output = runtime_source(self.uses_gui);
         output.push('\n');
         output.push_str(&functions);
+        output.push_str(&self.compile_gui_callback_dispatcher(program));
 
         if !program.items.iter().any(|item| {
             if let Item::Function(function) = item {
@@ -71,6 +72,33 @@ fn main() {
         );
 
         Ok(output)
+    }
+
+    fn compile_gui_callback_dispatcher(&self, program: &Program) -> String {
+        if !self.uses_gui {
+            return String::new();
+        }
+
+        let mut output = String::from(
+            "\nfn tsst_gui_dispatch_callback(name: &str) -> Result<(), String> {\n    match name {\n",
+        );
+
+        for item in &program.items {
+            if let Item::Function(function) = item {
+                if function.name != "main" && function.params.is_empty() {
+                    output.push_str(&format!(
+                        "        {:?} => {{ {}()?; Ok(()) }},\n",
+                        function.name,
+                        rust_fn(&function.name)
+                    ));
+                }
+            }
+        }
+
+        output.push_str(
+            "        _ => Err(format!(\"Unknown GUI callback '{}'. Callbacks must name a zero-argument TSST function.\", name)),\n    }\n}\n",
+        );
+        output
     }
 
     fn compile_function(&mut self, function: &Function) -> Result<String, String> {

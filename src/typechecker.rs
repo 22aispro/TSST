@@ -529,6 +529,12 @@ impl TypeChecker {
         args: &[Expr],
         used_as_expr: bool,
     ) -> Result<Type, String> {
+        if name == "gui_button_call" {
+            if let Some(result) = self.check_builtin_call(name, args)? {
+                return Ok(result);
+            }
+        }
+
         if name.starts_with("gui_") {
             for arg in args {
                 self.check_expr(arg)?;
@@ -659,6 +665,7 @@ impl TypeChecker {
             "os_exists" => Some((vec![Type::Str], Type::Bool)),
             "os_sleep" => Some((vec![Type::Int], Type::Bool)),
             "os_current_dir" => Some((vec![], Type::Str)),
+            "gui_button_call" => Some((vec![Type::Str, Type::Str], Type::Bool)),
             _ => return Ok(None),
         };
 

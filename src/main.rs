@@ -1008,4 +1008,27 @@ mod tests {
         assert!(generated.contains("builtin_os_current_dir()?"));
         assert!(generated.contains("builtin_os_exists"));
     }
+
+    #[test]
+    fn gui_callbacks_generate_a_zero_argument_dispatcher() {
+        let program = parse(
+            r#"fcn greet () { cons!("clicked"); }
+            fcn ignored (cre_int value) { cons!(value); }
+            pub fcn main () {
+                gui_window("Callbacks", 400, 300);
+                gui_button_call("Greet", "greet");
+                gui_show();
+            }"#,
+        );
+        TypeChecker::new()
+            .check_program(&program)
+            .expect("callback program should typecheck");
+
+        let generated = Compiler::new()
+            .compile_program(&program)
+            .expect("callback program should compile");
+        assert!(generated.contains("\"greet\" => { tsst_greet()?; Ok(()) }"));
+        assert!(!generated.contains("\"ignored\" => { tsst_ignored()?; Ok(()) }"));
+        assert!(generated.contains("GuiElement::CallbackButton"));
+    }
 }

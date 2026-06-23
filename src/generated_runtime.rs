@@ -424,6 +424,7 @@ enum GuiElement {
     Title(String),
     Text(String),
     Button(String),
+    CallbackButton(String, String),
     Space,
     Stat(String, String),
     MathButton(String, String, String, i64),
@@ -570,6 +571,19 @@ fn tsst_gui_button(text: RtValue) -> Result<RtValue, String> {
         .map_err(|_| "Could not lock GUI state.".to_string())?;
 
     state.elements.push(GuiElement::Button(text));
+
+    Ok(RtValue::Bool(true))
+}
+
+fn tsst_gui_button_call(label: RtValue, callback: RtValue) -> Result<RtValue, String> {
+    let label = expect_str(label, "gui_button_call label")?;
+    let callback = expect_str(callback, "gui_button_call callback")?;
+
+    let mut state = gui_state()
+        .lock()
+        .map_err(|_| "Could not lock GUI state.".to_string())?;
+
+    state.elements.push(GuiElement::CallbackButton(label, callback));
 
     Ok(RtValue::Bool(true))
 }
@@ -818,6 +832,9 @@ fn render_gui(ui: &mut egui::Ui, state: &mut GuiState) {
             GuiElement::Title(text) => render_title(ui, state, &text),
             GuiElement::Text(text) => render_text(ui, state, &text),
             GuiElement::Button(text) => render_plain_button(ui, state, &text),
+            GuiElement::CallbackButton(label, callback) => {
+                render_callback_button(ui, state, &label, &callback)
+            }
             GuiElement::Space => ui.add_space(state.style.spacing + 8.0),
             GuiElement::Stat(label, var_name) => render_stat(ui, state, &label, &var_name),
             GuiElement::MathButton(label, var_name, op, amount) => {
@@ -889,6 +906,46 @@ fn render_plain_button(ui: &mut egui::Ui, state: &GuiState, text: &str) {
         .stroke(egui::Stroke::new(1.0, rgb(style.border)));
 
         let _ = ui.add_sized([style.content_width, style.button_height], button);
+    });
+
+    ui.add_space(style.spacing * 0.8);
+}
+
+fn render_callback_button(
+    ui: &mut egui::Ui,
+    state: &mut GuiState,
+    label: &str,
+    callback: &str,
+) {
+    let style = state.style.clone();
+
+    ui.vertical_centered(|ui| {
+        let button = egui::Button::new(
+            egui::RichText::new(label)
+                .size(style.text_size + 1.0)
+                .strong()
+                .color(rgb(style.text)),
+        )
+        .fill(rgb(style.button))
+        .stroke(egui::Stroke::new(1.0, rgb(style.border)));
+
+        if ui.add_sized([style.content_width, style.button_height], button).clicked() {
+            let sync_result = gui_state()
+                .lock()
+                .map(|mut global| *global = state.clone())
+                .map_err(|_| "Could not lock GUI state.".to_string());
+
+            let callback_result = sync_result.and_then(|_| tsst_gui_dispatch_callback(callback));
+
+            if let Ok(global) = gui_state().lock() {
+                *state = global.clone();
+            }
+
+            state.status = match callback_result {
+                Ok(()) => format!("Ran {}.", callback),
+                Err(error) => format!("Callback error: {}", error),
+            };
+        }
     });
 
     ui.add_space(style.spacing * 0.8);

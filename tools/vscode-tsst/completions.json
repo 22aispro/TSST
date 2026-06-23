@@ -318,6 +318,12 @@
     "insertText": "os_sleep(${1:500})"
   },
   {
+    "label": "gui_button_call",
+    "kind": "function",
+    "detail": "Run a zero-argument TSST function when clicked",
+    "insertText": "gui_button_call(${1:\"Button\"}, ${2:\"callback_function\"})"
+  },
+  {
     "label": "calculator",
     "kind": "snippet",
     "detail": "interactive calculator starter",

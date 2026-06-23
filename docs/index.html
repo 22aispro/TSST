@@ -656,6 +656,25 @@ gui_button_math("Reset", "money", "set", 100);</code></pre>
           <h3>Transfer buttons</h3>
           <pre><code class="language-tsst">gui_button_transfer("Buy 1 Supply", "money", 10, "supply", 1);
 gui_button_transfer("Sell 1 Supply", "supply", 1, "money", 15);</code></pre>
+
+          <h3>Callback buttons</h3>
+          <p>
+            Callback buttons run a zero-argument TSST function when clicked. Callback errors appear
+            in the GUI status line. A callback can call OS functions, update GUI variables, or run
+            other TSST functions.
+          </p>
+          <pre><code class="language-tsst">fcn say_hello () {
+    cons!("The GUI button was clicked!");
+    gui_var("clicks", 1);
+}
+
+pub fcn main () {
+    gui_window("Callbacks", 500, 360);
+    gui_var("clicks", 0);
+    gui_stat("Clicks", "clicks");
+    gui_button_call("Say hello", "say_hello");
+    gui_show();
+}</code></pre>
         </section>
 
         <section class="section" id="gui-example">
@@ -939,7 +958,7 @@ main.tsst
             </div>
             <div>
               <span></span>
-              <p>Add GUI callbacks so TSST functions can run when buttons are clicked.</p>
+              <p>Add callback arguments and more interactive GUI controls.</p>
             </div>
             <div>
               <span></span>
