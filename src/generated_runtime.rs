@@ -939,44 +939,41 @@ fn render_profile_dashboard(ctx: &egui::Context, state: &mut GuiState) -> Option
             });
         });
 
-    egui::CentralPanel::default().frame(egui::Frame::none().fill(rgb(style.bg))).show(ctx, |ui| {
-        ui.add_space(12.0);
-        ui.horizontal_top(|ui| {
-            ui.set_width(ui.available_width() * 0.68);
-            ui.vertical(|ui| {
-                egui::Frame::none().fill(rgb(style.panel)).stroke(egui::Stroke::new(1.0, rgb(style.border))).inner_margin(egui::Margin::same(15.0)).show(ui, |ui| {
-                    ui.horizontal(|ui| { ui.heading("Compensation"); ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| { ui.label("○ IDLE"); }); });
-                    ui.horizontal(|ui| { ui.label("Hotkey"); ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| { ui.monospace(&dashboard.hotkey); }); });
-                });
-                ui.add_space(10.0);
-                egui::Frame::none().fill(rgb(style.panel)).stroke(egui::Stroke::new(1.0, rgb(style.border))).inner_margin(egui::Margin::same(15.0)).show(ui, |ui| {
-                    ui.horizontal(|ui| { ui.heading("Profile"); ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| { ui.colored_label(rgb(style.accent), &selected); }); });
-                    ui.horizontal(|ui| { ui.label("Horizontal"); ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| { ui.colored_label(rgb(style.accent), format!("{:.3}", horizontal as f64 / 1000.0)); }); });
-                    if ui.add(egui::Slider::new(&mut horizontal, -3000..=3000).show_value(false)).changed() { callback = Some(dashboard.change_callback.clone()); }
-                    ui.horizontal(|ui| { ui.label("Vertical"); ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| { ui.colored_label(rgb(style.accent), format!("{:.3}", vertical as f64 / 1000.0)); }); });
-                    if ui.add(egui::Slider::new(&mut vertical, 0..=15000).show_value(false)).changed() { callback = Some(dashboard.change_callback.clone()); }
-                });
-            });
-
-            ui.add_space(10.0);
-            ui.vertical(|ui| {
-                ui.set_width(ui.available_width());
-                egui::Frame::none().fill(rgb(style.panel)).stroke(egui::Stroke::new(1.0, rgb(style.border))).inner_margin(egui::Margin::same(11.0)).show(ui, |ui| {
-                    ui.small("OPERATORS");
-                    ui.add(egui::TextEdit::singleline(&mut dashboard.search).hint_text("Search operators...").desired_width(f32::INFINITY));
-                    ui.small("ATTACKERS / DEFENDERS");
-                    let query = dashboard.search.to_ascii_lowercase();
-                    egui::ScrollArea::vertical().max_height(315.0).show(ui, |ui| {
-                        for operator in &dashboard.operators {
-                            if !query.is_empty() && !operator.to_ascii_lowercase().contains(&query) { continue; }
-                            if ui.selectable_label(selected == *operator, operator).clicked() {
-                                selected = operator.clone();
-                                callback = Some(dashboard.change_callback.clone());
-                            }
+    egui::SidePanel::right("tsst_dashboard_operators")
+        .resizable(false)
+        .exact_width(270.0)
+        .frame(egui::Frame::none().fill(rgb(style.bg)).inner_margin(egui::Margin::same(12.0)))
+        .show(ctx, |ui| {
+            egui::Frame::none().fill(rgb(style.panel)).stroke(egui::Stroke::new(1.0, rgb(style.border))).inner_margin(egui::Margin::same(11.0)).show(ui, |ui| {
+                ui.set_min_width(246.0);
+                ui.small("OPERATORS");
+                ui.add(egui::TextEdit::singleline(&mut dashboard.search).hint_text("Search operators...").desired_width(f32::INFINITY));
+                ui.small("ATTACKERS / DEFENDERS");
+                let query = dashboard.search.to_ascii_lowercase();
+                egui::ScrollArea::vertical().max_height(350.0).show(ui, |ui| {
+                    for operator in &dashboard.operators {
+                        if !query.is_empty() && !operator.to_ascii_lowercase().contains(&query) { continue; }
+                        if ui.selectable_label(selected == *operator, operator).clicked() {
+                            selected = operator.clone();
+                            callback = Some(dashboard.change_callback.clone());
                         }
-                    });
+                    }
                 });
             });
+        });
+
+    egui::CentralPanel::default().frame(egui::Frame::none().fill(rgb(style.bg)).inner_margin(egui::Margin::same(12.0))).show(ctx, |ui| {
+        egui::Frame::none().fill(rgb(style.panel)).stroke(egui::Stroke::new(1.0, rgb(style.border))).inner_margin(egui::Margin::same(15.0)).show(ui, |ui| {
+            ui.horizontal(|ui| { ui.heading("Compensation"); ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| { ui.label("○ IDLE"); }); });
+            ui.horizontal(|ui| { ui.label("Hotkey"); ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| { ui.monospace(&dashboard.hotkey); }); });
+        });
+        ui.add_space(10.0);
+        egui::Frame::none().fill(rgb(style.panel)).stroke(egui::Stroke::new(1.0, rgb(style.border))).inner_margin(egui::Margin::same(15.0)).show(ui, |ui| {
+            ui.horizontal(|ui| { ui.heading("Profile"); ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| { ui.colored_label(rgb(style.accent), &selected); }); });
+            ui.horizontal(|ui| { ui.label("Horizontal"); ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| { ui.colored_label(rgb(style.accent), format!("{:.3}", horizontal as f64 / 1000.0)); }); });
+            if ui.add(egui::Slider::new(&mut horizontal, -3000..=3000).show_value(false)).changed() { callback = Some(dashboard.change_callback.clone()); }
+            ui.horizontal(|ui| { ui.label("Vertical"); ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| { ui.colored_label(rgb(style.accent), format!("{:.3}", vertical as f64 / 1000.0)); }); });
+            if ui.add(egui::Slider::new(&mut vertical, 0..=15000).show_value(false)).changed() { callback = Some(dashboard.change_callback.clone()); }
         });
     });
 
