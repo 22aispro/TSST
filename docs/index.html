@@ -36,6 +36,12 @@
         <a href="#imports">Imports</a>
         <a href="#builtins">Built-ins</a>
 
+        <p>GUI</p>
+        <a href="#gui-overview">GUI Overview</a>
+        <a href="#gui-theme">GUI Themes</a>
+        <a href="#gui-state">GUI State</a>
+        <a href="#gui-example">GUI Example</a>
+
         <p>Packages</p>
         <a href="#packages">Package Manager</a>
         <a href="#quartus">Quartus</a>
@@ -559,6 +565,166 @@ pub fcn main () {
               <p>Checks whether a string contains another string.</p>
             </article>
           </div>
+        </section>
+
+        <section class="section" id="gui-overview">
+          <div class="section-heading">
+            <p class="kicker">GUI</p>
+            <h2>GUI apps</h2>
+          </div>
+
+          <p class="lead">
+            TSST can build simple GUI apps in compiled mode. GUI apps use generic
+            runtime functions, while app logic, layout, and style are written in TSST.
+          </p>
+
+          <div class="callout">
+            <strong>Important:</strong> GUI apps currently require <code>tsst build</code>.
+            Use <code>tsst run</code> for console programs and <code>tsst build</code> for GUI programs.
+          </div>
+
+          <h3>Minimal GUI app</h3>
+          <pre><code class="language-tsst">pub fcn main () {
+    gui_window("My App", 600, 500);
+
+    gui_title("Hello GUI");
+    gui_text("This is a TSST GUI app.");
+
+    gui_show();
+}</code></pre>
+        </section>
+
+        <section class="section" id="gui-theme">
+          <div class="section-heading">
+            <p class="kicker">GUI Style</p>
+            <h2>Style the GUI from TSST</h2>
+          </div>
+
+          <p class="lead">
+            TSST controls GUI mode, colors, sizing, spacing, and button style.
+          </p>
+
+          <h3>Theme mode</h3>
+          <pre><code class="language-tsst">gui_theme_mode("light");
+gui_theme_mode("dark");</code></pre>
+
+          <h3>Theme colors</h3>
+          <pre><code class="language-tsst">gui_theme_bg(245, 245, 245);
+gui_theme_panel(255, 255, 255);
+gui_theme_card(255, 255, 255);
+
+gui_theme_button(255, 255, 255);
+gui_theme_button_alt(255, 255, 255);
+
+gui_theme_accent(0, 0, 0);
+gui_theme_text(0, 0, 0);
+gui_theme_muted(45, 45, 45);
+gui_theme_border(0, 0, 0);</code></pre>
+
+          <h3>Style sizing</h3>
+          <pre><code class="language-tsst">gui_style_width(420);
+gui_style_title_size(28);
+gui_style_text_size(16);
+gui_style_button_height(44);
+gui_style_spacing(10);</code></pre>
+        </section>
+
+        <section class="section" id="gui-state">
+          <div class="section-heading">
+            <p class="kicker">GUI State</p>
+            <h2>Interactive GUI state</h2>
+          </div>
+
+          <p class="lead">
+            GUI variables store numbers that can be displayed and changed by buttons.
+          </p>
+
+          <h3>Create variables</h3>
+          <pre><code class="language-tsst">gui_var("money", 100);
+gui_var("supply", 0);</code></pre>
+
+          <h3>Show variables</h3>
+          <pre><code class="language-tsst">gui_stat("Money", "money");
+gui_stat("Supply", "supply");</code></pre>
+
+          <h3>Math buttons</h3>
+          <pre><code class="language-tsst">gui_button_math("Add 5", "money", "+", 5);
+gui_button_math("Subtract 5", "money", "-", 5);
+gui_button_math("Double", "money", "*", 2);
+gui_button_math("Reset", "money", "set", 100);</code></pre>
+
+          <h3>Transfer buttons</h3>
+          <pre><code class="language-tsst">gui_button_transfer("Buy 1 Supply", "money", 10, "supply", 1);
+gui_button_transfer("Sell 1 Supply", "supply", 1, "money", 15);</code></pre>
+        </section>
+
+        <section class="section" id="gui-example">
+          <div class="section-heading">
+            <p class="kicker">GUI Example</p>
+            <h2>Supply Hustle</h2>
+          </div>
+
+          <p class="lead">
+            A tiny GUI game where the style, layout, and state are written in TSST.
+          </p>
+
+          <pre><code class="language-tsst">pub fcn main () {
+    gui_window("Supply Hustle", 620, 700);
+
+    gui_theme_mode("light");
+
+    gui_theme_bg(245, 245, 245);
+    gui_theme_panel(255, 255, 255);
+    gui_theme_card(255, 255, 255);
+
+    gui_theme_button(255, 255, 255);
+    gui_theme_button_alt(255, 255, 255);
+
+    gui_theme_accent(0, 0, 0);
+    gui_theme_text(0, 0, 0);
+    gui_theme_muted(45, 45, 45);
+    gui_theme_border(0, 0, 0);
+
+    gui_style_width(420);
+    gui_style_title_size(28);
+    gui_style_text_size(16);
+    gui_style_button_height(44);
+    gui_style_spacing(10);
+
+    gui_title("Supply Hustle");
+    gui_text("Buy supply. Sell supply. Make money.");
+    gui_space();
+
+    gui_var("money", 100);
+    gui_var("supply", 0);
+
+    gui_stat("Money", "money");
+    gui_stat("Supply", "supply");
+
+    gui_space();
+
+    gui_title("Market");
+    gui_text("Buy one supply for 10 money.");
+    gui_text("Sell one supply for 15 money.");
+    gui_space();
+
+    gui_button_transfer("Buy 1 Supply", "money", 10, "supply", 1);
+    gui_button_transfer("Buy 5 Supply", "money", 50, "supply", 5);
+
+    gui_button_transfer("Sell 1 Supply", "supply", 1, "money", 15);
+    gui_button_transfer("Sell 5 Supply", "supply", 5, "money", 75);
+
+    gui_space();
+
+    gui_title("Goal");
+    gui_text("Reach 250 money to win.");
+
+    gui_show();
+}</code></pre>
+
+          <h3>Build and run</h3>
+          <pre><code class="language-powershell">tsst build main.tsst
+.\build\release\main.exe</code></pre>
         </section>
 
         <section class="section" id="packages">
