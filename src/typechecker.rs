@@ -657,6 +657,7 @@ impl TypeChecker {
             "len" => None,
             "input_str" => Some((vec![Type::Str], Type::Str)),
             "input_int" => Some((vec![Type::Str], Type::Int)),
+            "to_int" => Some((vec![Type::Str], Type::Int)),
             "lower" | "upper" | "trim" => Some((vec![Type::Str], Type::Str)),
             "contains" => Some((vec![Type::Str, Type::Str], Type::Bool)),
             "os_run" => Some((vec![Type::Str, Type::Arr], Type::Int)),

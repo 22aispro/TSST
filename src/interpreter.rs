@@ -760,6 +760,24 @@ impl Interpreter {
                 Ok(Some(Value::Int(number)))
             }
 
+            "to_int" => {
+                if args.len() != 1 {
+                    return Err("to_int() expects 1 argument.".to_string());
+                }
+
+                match &args[0] {
+                    Value::Str(value) => {
+                        let trimmed = value.trim();
+                        let number = trimmed.parse::<i64>().map_err(|_| {
+                            format!("to_int() expected a valid integer, got '{trimmed}'.")
+                        })?;
+
+                        Ok(Some(Value::Int(number)))
+                    }
+                    other => Err(format!("to_int() expected str, got {}.", other.type_name())),
+                }
+            }
+
             "lower" => {
                 if args.len() != 1 {
                     return Err("lower() expects 1 argument.".to_string());

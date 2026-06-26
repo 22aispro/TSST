@@ -593,6 +593,7 @@ fn main() {
                     "len" => Ok(format!("builtin_len({args})?")),
                     "input_str" => Ok(format!("builtin_input_str({args})?")),
                     "input_int" => Ok(format!("builtin_input_int({args})?")),
+                    "to_int" => Ok(format!("builtin_to_int({args})?")),
                     "lower" => Ok(format!("builtin_lower({args})?")),
                     "upper" => Ok(format!("builtin_upper({args})?")),
                     "trim" => Ok(format!("builtin_trim({args})?")),

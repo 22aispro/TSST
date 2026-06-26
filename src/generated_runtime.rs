@@ -314,6 +314,16 @@ fn builtin_input_int(prompt: RtValue) -> Result<RtValue, String> {
     Ok(RtValue::Int(number))
 }
 
+fn builtin_to_int(value: RtValue) -> Result<RtValue, String> {
+    let value = expect_str(value, "to_int value")?;
+    let trimmed = value.trim();
+    let number = trimmed
+        .parse::<i64>()
+        .map_err(|_| format!("to_int() expected a valid integer, got '{}'.", trimmed))?;
+
+    Ok(RtValue::Int(number))
+}
+
 fn builtin_lower(value: RtValue) -> Result<RtValue, String> {
     Ok(RtValue::Str(expect_str(value, "lower")?.to_lowercase()))
 }
@@ -526,6 +536,74 @@ fn clamp_color(value: i64) -> u8 {
 
 fn rgb(value: (u8, u8, u8)) -> egui::Color32 {
     egui::Color32::from_rgb(value.0, value.1, value.2)
+}
+
+fn dashboard_hotkey_key(name: &str) -> Option<egui::Key> {
+    match name.trim().to_ascii_uppercase().as_str() {
+        "F1" => Some(egui::Key::F1),
+        "F2" => Some(egui::Key::F2),
+        "F3" => Some(egui::Key::F3),
+        "F4" => Some(egui::Key::F4),
+        "F5" => Some(egui::Key::F5),
+        "F6" => Some(egui::Key::F6),
+        "F7" => Some(egui::Key::F7),
+        "F8" => Some(egui::Key::F8),
+        "F9" => Some(egui::Key::F9),
+        "F10" => Some(egui::Key::F10),
+        "F11" => Some(egui::Key::F11),
+        "F12" => Some(egui::Key::F12),
+        "A" => Some(egui::Key::A),
+        "B" => Some(egui::Key::B),
+        "C" => Some(egui::Key::C),
+        "D" => Some(egui::Key::D),
+        "E" => Some(egui::Key::E),
+        "F" => Some(egui::Key::F),
+        "G" => Some(egui::Key::G),
+        "H" => Some(egui::Key::H),
+        "I" => Some(egui::Key::I),
+        "J" => Some(egui::Key::J),
+        "K" => Some(egui::Key::K),
+        "L" => Some(egui::Key::L),
+        "M" => Some(egui::Key::M),
+        "N" => Some(egui::Key::N),
+        "O" => Some(egui::Key::O),
+        "P" => Some(egui::Key::P),
+        "Q" => Some(egui::Key::Q),
+        "R" => Some(egui::Key::R),
+        "S" => Some(egui::Key::S),
+        "T" => Some(egui::Key::T),
+        "U" => Some(egui::Key::U),
+        "V" => Some(egui::Key::V),
+        "W" => Some(egui::Key::W),
+        "X" => Some(egui::Key::X),
+        "Y" => Some(egui::Key::Y),
+        "Z" => Some(egui::Key::Z),
+        "0" => Some(egui::Key::Num0),
+        "1" => Some(egui::Key::Num1),
+        "2" => Some(egui::Key::Num2),
+        "3" => Some(egui::Key::Num3),
+        "4" => Some(egui::Key::Num4),
+        "5" => Some(egui::Key::Num5),
+        "6" => Some(egui::Key::Num6),
+        "7" => Some(egui::Key::Num7),
+        "8" => Some(egui::Key::Num8),
+        "9" => Some(egui::Key::Num9),
+        "ESC" | "ESCAPE" => Some(egui::Key::Escape),
+        "TAB" => Some(egui::Key::Tab),
+        "ENTER" | "RETURN" => Some(egui::Key::Enter),
+        "SPACE" => Some(egui::Key::Space),
+        "INSERT" => Some(egui::Key::Insert),
+        "DELETE" => Some(egui::Key::Delete),
+        "HOME" => Some(egui::Key::Home),
+        "END" => Some(egui::Key::End),
+        "PAGEUP" => Some(egui::Key::PageUp),
+        "PAGEDOWN" => Some(egui::Key::PageDown),
+        "UP" => Some(egui::Key::ArrowUp),
+        "DOWN" => Some(egui::Key::ArrowDown),
+        "LEFT" => Some(egui::Key::ArrowLeft),
+        "RIGHT" => Some(egui::Key::ArrowRight),
+        _ => None,
+    }
 }
 
 fn read_rgb(r: RtValue, g: RtValue, b: RtValue, context: &str) -> Result<(u8, u8, u8), String> {
@@ -917,6 +995,56 @@ fn run_dashboard_callback(state: &mut GuiState, callback: &str) {
     };
 }
 
+fn render_dashboard_slider(
+    ui: &mut egui::Ui,
+    value: &mut i64,
+    min: i64,
+    max: i64,
+    _style: &GuiStyle,
+) -> bool {
+    let desired_size = egui::vec2(ui.available_width(), 20.0);
+    let (rect, response) = ui.allocate_exact_size(desired_size, egui::Sense::click_and_drag());
+    let track_height = 4.0;
+    let track_rect = egui::Rect::from_min_max(
+        egui::pos2(rect.left(), rect.center().y - track_height / 2.0),
+        egui::pos2(rect.right(), rect.center().y + track_height / 2.0),
+    );
+
+    let mut changed = false;
+    if response.clicked() || response.dragged() {
+        if let Some(pointer) = response.interact_pointer_pos() {
+            let percent = ((pointer.x - track_rect.left()) / track_rect.width()).clamp(0.0, 1.0);
+            let next = min + ((max - min) as f32 * percent).round() as i64;
+            if *value != next {
+                *value = next;
+                changed = true;
+                ui.ctx().request_repaint();
+            }
+        }
+    }
+
+    let percent = ((*value - min) as f32 / (max - min).max(1) as f32).clamp(0.0, 1.0);
+    let knob_x = track_rect.left() + track_rect.width() * percent;
+    let fill_rect = egui::Rect::from_min_max(
+        track_rect.left_top(),
+        egui::pos2(knob_x, track_rect.bottom()),
+    );
+    let painter = ui.painter();
+    let track_color = egui::Color32::from_rgb(94, 94, 94);
+    let fill_color = egui::Color32::from_rgb(73, 103, 245);
+    let knob_color = egui::Color32::from_rgb(92, 119, 247);
+
+    painter.rect_filled(track_rect, 2.0, track_color);
+    painter.rect_filled(fill_rect, 2.0, fill_color);
+    painter.circle_filled(egui::pos2(knob_x, track_rect.center().y), 7.0, knob_color);
+
+    if response.hovered() || response.dragged() {
+        ui.output_mut(|output| output.cursor_icon = egui::CursorIcon::PointingHand);
+    }
+
+    changed
+}
+
 fn render_profile_dashboard(ctx: &egui::Context, state: &mut GuiState) -> Option<String> {
     let mut dashboard = state.dashboard.clone()?;
     let style = state.style.clone();
@@ -924,6 +1052,14 @@ fn render_profile_dashboard(ctx: &egui::Context, state: &mut GuiState) -> Option
     let mut selected = state.strings.get(&dashboard.selected_var).cloned().unwrap_or_default();
     let mut horizontal = state.vars.get(&dashboard.horizontal_var).cloned().unwrap_or(0);
     let mut vertical = state.vars.get(&dashboard.vertical_var).cloned().unwrap_or(0);
+    if let Some(key) = dashboard_hotkey_key(&dashboard.hotkey) {
+        if ctx.input(|input| input.key_pressed(key)) {
+            let enabled = state.vars.get("enabled").cloned().unwrap_or(0) == 0;
+            state.vars.insert("enabled".to_string(), if enabled { 1 } else { 0 });
+        }
+    }
+    let active = state.vars.get("enabled").cloned().unwrap_or(0) != 0;
+    let status_label = if active { "● ACTIVE" } else { "○ IDLE" };
 
     egui::TopBottomPanel::top("tsst_dashboard_top")
         .frame(egui::Frame::none().fill(rgb(style.panel)).inner_margin(egui::Margin::same(10.0)))
@@ -933,8 +1069,7 @@ fn render_profile_dashboard(ctx: &egui::Context, state: &mut GuiState) -> Option
                 if ui.selectable_label(dashboard.active_tab == 1, "Settings").clicked() { dashboard.active_tab = 1; }
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if ui.button("Save").clicked() { callback = Some(dashboard.save_callback.clone()); }
-                    let active = state.vars.get("enabled").cloned().unwrap_or(0) != 0;
-                    ui.label(if active { "● ACTIVE" } else { "○ IDLE" });
+                    ui.label(status_label);
                 });
             });
         });
@@ -963,16 +1098,16 @@ fn render_profile_dashboard(ctx: &egui::Context, state: &mut GuiState) -> Option
 
     egui::CentralPanel::default().frame(egui::Frame::none().fill(rgb(style.bg)).inner_margin(egui::Margin::same(12.0))).show(ctx, |ui| {
         egui::Frame::none().fill(rgb(style.panel)).stroke(egui::Stroke::new(1.0, rgb(style.border))).inner_margin(egui::Margin::same(15.0)).show(ui, |ui| {
-            ui.horizontal(|ui| { ui.heading("Compensation"); ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| { ui.label("○ IDLE"); }); });
+            ui.horizontal(|ui| { ui.heading("Compensation"); ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| { ui.label(status_label); }); });
             ui.horizontal(|ui| { ui.label("Hotkey"); ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| { ui.monospace(&dashboard.hotkey); }); });
         });
         ui.add_space(10.0);
         egui::Frame::none().fill(rgb(style.panel)).stroke(egui::Stroke::new(1.0, rgb(style.border))).inner_margin(egui::Margin::same(15.0)).show(ui, |ui| {
             ui.horizontal(|ui| { ui.heading("Profile"); ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| { ui.colored_label(rgb(style.accent), &selected); }); });
             ui.horizontal(|ui| { ui.label("Horizontal"); ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| { ui.colored_label(rgb(style.accent), format!("{:.3}", horizontal as f64 / 1000.0)); }); });
-            if ui.add(egui::Slider::new(&mut horizontal, -3000..=3000).show_value(false)).changed() { callback = Some(dashboard.change_callback.clone()); }
+            if render_dashboard_slider(ui, &mut horizontal, -3000, 3000, &style) { callback = Some(dashboard.change_callback.clone()); }
             ui.horizontal(|ui| { ui.label("Vertical"); ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| { ui.colored_label(rgb(style.accent), format!("{:.3}", vertical as f64 / 1000.0)); }); });
-            if ui.add(egui::Slider::new(&mut vertical, 0..=15000).show_value(false)).changed() { callback = Some(dashboard.change_callback.clone()); }
+            if render_dashboard_slider(ui, &mut vertical, 0, 15000, &style) { callback = Some(dashboard.change_callback.clone()); }
         });
     });
 
